@@ -1,32 +1,23 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
-# --- Tablas Maestras (Las amarillas en tu diagrama) ---
+# ── CATÁLOGOS ─────────────────────────
 
 
 class TipoServicio(models.Model):
-    nombre = models.CharField(max_length=255)
-    estado = models.BooleanField(default=True)
-
-    class Meta:
-        verbose_name = "Tipo de Servicio"
-        verbose_name_plural = "Tipos de Servicio"
+    nombre = models.CharField(max_length=100, unique=True)
+    activo = models.BooleanField(default=True)
 
     def __str__(self):
         return self.nombre
 
 
 class Magnitud(models.Model):
-    nombre = models.CharField(max_length=255)
-    estado = models.BooleanField(default=True)
-
-    class Meta:
-        verbose_name = "Magnitud"
-        verbose_name_plural = "Magnitudes"
+    nombre = models.CharField(max_length=100, unique=True)
+    activo = models.BooleanField(default=True)
 
     def __str__(self):
         return self.nombre
-
-# --- Procedimientos e Instrumentos ---
 
 
 class Procedimiento(models.Model):
@@ -34,32 +25,43 @@ class Procedimiento(models.Model):
     nombre = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"{self.codigo} - {self.nombre}"
+        return self.codigo
 
 
 class Instrumento(models.Model):
     nombre = models.CharField(max_length=255)
     magnitud = models.ForeignKey(Magnitud, on_delete=models.PROTECT)
-    codigo_base = models.CharField(max_length=100)
-    descripcion = models.TextField(blank=True, null=True)
-    activo = models.BooleanField(default=True)
+    codigo_base = models.CharField(max_length=50, blank=True)
 
     def __str__(self):
         return self.nombre
 
-# --- El núcleo del catálogo ---
 
+# ── CATÁLOGO ─────────────────────────
 
 class CatalogoServicio(models.Model):
-    cod_facturacion = models.CharField(max_length=100, unique=True)
+
+    class PatronVariacion(models.TextChoices):
+        FIJO = 'FIJO'
+        PUNTOS = 'PUNTOS'
+        RANGO = 'RANGO'
+        COMBINADO = 'COMB'
+
+    cod_facturacion = models.CharField(max_length=50, unique=True)
     tipo_servicio = models.ForeignKey(TipoServicio, on_delete=models.PROTECT)
     magnitud = models.ForeignKey(Magnitud, on_delete=models.PROTECT)
     instrumento = models.ForeignKey(Instrumento, on_delete=models.PROTECT)
-
-    # 👇 NUEVO AQUÍ
-    procedimiento = models.ForeignKey(Procedimiento, on_delete=models.PROTECT)
+    procedimiento = models.ForeignKey(
+        Procedimiento, on_delete=models.PROTECT, null=True, blank=True)
 
     nombre = models.CharField(max_length=255, blank=True)
+    patron = models.CharField(max_length=10, choices=PatronVariacion.choices)
+
+    precio_base = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True)
+    precio_base_no_acreditado = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True)
+
     acreditado = models.BooleanField(default=False)
     activo = models.BooleanField(default=True)
 
@@ -67,47 +69,40 @@ class CatalogoServicio(models.Model):
         self.nombre = f"{self.tipo_servicio} de {self.instrumento}"
         super().save(*args, **kwargs)
 
-# --- Variantes y Parámetros ---
-
-
-class VarianteServicio(models.Model):
-    servicio = models.ForeignKey(
-        CatalogoServicio, on_delete=models.CASCADE, related_name='variantes'
-    )
-    cod_variante = models.CharField(max_length=100, blank=True)
-    descripcion = models.TextField()
-    # procedimiento = models.ForeignKey(Procedimiento, on_delete=models.PROTECT)
-    acreditado = models.BooleanField(default=False)
-    activo = models.BooleanField(default=True)
-
-    def save(self, *args, **kwargs):
-        if not self.cod_variante:
-            # contar cuántas variantes ya existen para este servicio
-            count = VarianteServicio.objects.filter(
-                servicio=self.servicio).count() + 1
-
-            # generar código con formato 01, 02, 03...
-            self.cod_variante = f"{self.servicio.cod_facturacion}-{count:02d}"
-
-        super().save(*args, **kwargs)
-
     def __str__(self):
-        return self.cod_variante
+        return f"{self.cod_facturacion} - {self.nombre}"
+
+    def calcular_precio(self, opciones, acreditado):
+        from .services import calcular_precio_servicio
+        return calcular_precio_servicio(self, opciones, acreditado)
 
 
-class VarianteProc(models.Model):
-    # Tabla intermedia segun diagrama
-    variante = models.ForeignKey(VarianteServicio, on_delete=models.CASCADE)
-    procedimiento = models.ForeignKey(Procedimiento, on_delete=models.CASCADE)
+# ── TARIFAS ─────────────────────────
+
+class TarifaPunto(models.Model):
+
+    class TipoEje(models.TextChoices):
+        TEMP = 'TEMP'
+        HUM = 'HUM'
+        PH = 'PH'
+        BRIX = 'BRIX'
+
+    servicio = models.ForeignKey(CatalogoServicio, on_delete=models.CASCADE)
+    tipo_eje = models.CharField(max_length=10, choices=TipoEje.choices)
+    num_punto = models.IntegerField()
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    acreditado = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('servicio', 'tipo_eje', 'num_punto', 'acreditado')
 
 
-class ParametroVariante(models.Model):
-    variante = models.ForeignKey(
-        VarianteServicio, on_delete=models.CASCADE, related_name='parametros')
-    nombre_param = models.CharField(max_length=255)
-    valor = models.CharField(max_length=255)
-    unidad = models.CharField(max_length=50)
-    tipo_dato = models.CharField(max_length=50)  # Ej: float, int, string
+class TarifaRango(models.Model):
+    servicio = models.ForeignKey(CatalogoServicio, on_delete=models.CASCADE)
+    codigo_rango = models.CharField(max_length=30)
+    label = models.CharField(max_length=150)
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    acreditado = models.BooleanField(default=True)
 
-    def __str__(self):
-        return f"{self.nombre_param}: {self.valor} {self.unidad}"
+    class Meta:
+        unique_together = ('servicio', 'codigo_rango', 'acreditado')
