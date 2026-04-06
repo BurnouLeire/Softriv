@@ -1,7 +1,9 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class Customer(models.Model):
+
     class PersonType(models.TextChoices):
         NATURAL = 'NAT', 'Persona Natural'
         JURIDICA = 'JUR', 'Persona Jurídica'
@@ -42,6 +44,122 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.nombre_completo
+
+        # 🔥 VALIDACIÓN COMPLETA AQUÍ
+    def validar_identificacion_ec(self, valor):
+        v = valor.strip()
+
+        if not v.isdigit():
+            return False
+
+        # =========================
+        # CÉDULA (10 dígitos)
+        # =========================
+        if len(v) == 10:
+            provincia = int(v[0:2])
+            if not (1 <= provincia <= 24):
+                return False
+
+            tercer_digito = int(v[2])
+            if not (0 <= tercer_digito <= 5):
+                return False
+
+            coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2]
+            suma = 0
+
+            for i in range(9):
+                val = int(v[i]) * coeficientes[i]
+                if val >= 10:
+                    val -= 9
+                suma += val
+
+            digito = (10 - (suma % 10)) % 10
+
+            return digito == int(v[9])
+
+        # =========================
+        # RUC (13 dígitos)
+        # =========================
+        elif len(v) == 13:
+            provincia = int(v[0:2])
+            if not (1 <= provincia <= 24):
+                return False
+
+            tercer_digito = int(v[2])
+
+            # PERSONA NATURAL
+            if 0 <= tercer_digito <= 5:
+                coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2]
+                suma = 0
+
+                for i in range(9):
+                    val = int(v[i]) * coeficientes[i]
+                    if val >= 10:
+                        val -= 9
+                    suma += val
+
+                digito = (10 - (suma % 10)) % 10
+
+                if digito != int(v[9]):
+                    return False
+
+                return v[10:13] != "000"
+
+            # ENTIDAD PÚBLICA
+            elif tercer_digito == 6:
+                coeficientes = [3, 2, 7, 6, 5, 4, 3, 2]
+                suma = 0
+
+                for i in range(8):
+                    suma += int(v[i]) * coeficientes[i]
+
+                digito = 11 - (suma % 11)
+
+                if digito in (10, 11):
+                    digito = 0
+
+                if digito != int(v[8]):
+                    return False
+
+                return v[9:13] != "0000"
+
+            # SOCIEDAD PRIVADA
+            elif tercer_digito == 9:
+                coeficientes = [4, 3, 2, 7, 6, 5, 4, 3, 2]
+                suma = 0
+
+                for i in range(9):
+                    suma += int(v[i]) * coeficientes[i]
+
+                digito = 11 - (suma % 11)
+
+                if digito in (10, 11):
+                    digito = 0
+
+                if digito != int(v[9]):
+                    return False
+
+                return v[10:13] != "000"
+
+            else:
+                return False
+
+        return False
+
+    # 🔥 SE EJECUTA AUTOMÁTICAMENTE
+    def clean(self):
+        if self.tipo_identificacion in ['CED', 'RUC']:
+            if not self.validar_identificacion_ec(self.identificacion):
+                raise ValidationError({
+                    "identificacion": "Cédula o RUC inválido"
+                })
+
+    # 🔥 OBLIGA VALIDACIÓN AL GUARDAR
+    def save(self, *args, **kwargs):
+        if self.nombre_completo:
+            self.nombre_completo = self.nombre_completo.upper()
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Branch(models.Model):

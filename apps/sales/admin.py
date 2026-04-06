@@ -1,3 +1,7 @@
 from django.contrib import admin
-
-# Register your models here.
+from .models import (
+    CotizDetalle, Cotizacion,
+    # TarifaPunto, TarifaRango
+)
+admin.site.register(Cotizacion)
+admin.site.register(CotizDetalle)

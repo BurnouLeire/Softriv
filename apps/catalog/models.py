@@ -1,8 +1,9 @@
 from django.db import models
-from django.core.exceptions import ValidationError
 
-# ── CATÁLOGOS ─────────────────────────
 
+# ─────────────────────────
+# CATÁLOGOS BASE
+# ─────────────────────────
 
 class TipoServicio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -37,33 +38,33 @@ class Instrumento(models.Model):
         return self.nombre
 
 
-# ── CATÁLOGO ─────────────────────────
+# ─────────────────────────
+# CATÁLOGO PRINCIPAL
+# ─────────────────────────
 
 class CatalogoServicio(models.Model):
-
-    class PatronVariacion(models.TextChoices):
-        FIJO = 'FIJO'
-        PUNTOS = 'PUNTOS'
-        RANGO = 'RANGO'
-        COMBINADO = 'COMB'
-
     cod_facturacion = models.CharField(max_length=50, unique=True)
+
     tipo_servicio = models.ForeignKey(TipoServicio, on_delete=models.PROTECT)
     magnitud = models.ForeignKey(Magnitud, on_delete=models.PROTECT)
     instrumento = models.ForeignKey(Instrumento, on_delete=models.PROTECT)
-    procedimiento = models.ForeignKey(
-        Procedimiento, on_delete=models.PROTECT, null=True, blank=True)
+
+    procedimiento_base = models.ForeignKey(
+        Procedimiento,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
 
     nombre = models.CharField(max_length=255, blank=True)
-    patron = models.CharField(max_length=10, choices=PatronVariacion.choices)
-
-    precio_base = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True)
-    precio_base_no_acreditado = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True)
 
     acreditado = models.BooleanField(default=False)
     activo = models.BooleanField(default=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['cod_facturacion']),
+        ]
 
     def save(self, *args, **kwargs):
         self.nombre = f"{self.tipo_servicio} de {self.instrumento}"
@@ -72,37 +73,100 @@ class CatalogoServicio(models.Model):
     def __str__(self):
         return f"{self.cod_facturacion} - {self.nombre}"
 
-    def calcular_precio(self, opciones, acreditado):
-        from .services import calcular_precio_servicio
-        return calcular_precio_servicio(self, opciones, acreditado)
 
+# ─────────────────────────
+# VARIANTES (CORE DEL SISTEMA)
+# ─────────────────────────
 
-# ── TARIFAS ─────────────────────────
+class VarianteServicio(models.Model):
+    servicio = models.ForeignKey(
+        CatalogoServicio,
+        on_delete=models.CASCADE,
+        related_name='variantes'
+    )
 
-class TarifaPunto(models.Model):
+    cod_variante = models.CharField(max_length=120, blank=True)
+    descripcion = models.TextField()
 
-    class TipoEje(models.TextChoices):
-        TEMP = 'TEMP'
-        HUM = 'HUM'
-        PH = 'PH'
-        BRIX = 'BRIX'
+    procedimiento = models.ForeignKey(
+        Procedimiento,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
 
-    servicio = models.ForeignKey(CatalogoServicio, on_delete=models.CASCADE)
-    tipo_eje = models.CharField(max_length=10, choices=TipoEje.choices)
-    num_punto = models.IntegerField()
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
-    acreditado = models.BooleanField(default=True)
-
-    class Meta:
-        unique_together = ('servicio', 'tipo_eje', 'num_punto', 'acreditado')
-
-
-class TarifaRango(models.Model):
-    servicio = models.ForeignKey(CatalogoServicio, on_delete=models.CASCADE)
-    codigo_rango = models.CharField(max_length=30)
-    label = models.CharField(max_length=150)
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
-    acreditado = models.BooleanField(default=True)
+    acreditado = models.BooleanField(default=False)
+    activo = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ('servicio', 'codigo_rango', 'acreditado')
+        indexes = [
+            models.Index(fields=['servicio']),
+            # models.Index(fields=['servicio']),
+        ]
+
+    def __str__(self):
+        return f"{self.servicio} | {self.descripcion}"
+
+
+# ─────────────────────────
+# DIMENSIONES (ESCALABILIDAD REAL)
+# ─────────────────────────
+
+class DimensionVariante(models.Model):
+
+    class TipoDimension(models.TextChoices):
+        PUNTOS_TEMP = 'PUNTOS_TEMP'
+        PUNTOS_HUM = 'PUNTOS_HUM'
+        RANGO_MASA = 'RANGO_MASA'
+        CAP_MAX = 'CAP_MAX'
+        VALOR_NOMINAL = 'VALOR_NOMINAL'
+        CLASE_PESO = 'CLASE_PESO'
+        ENTORNO = 'ENTORNO'
+
+    variante = models.ForeignKey(
+        VarianteServicio,
+        on_delete=models.CASCADE,
+        related_name='dimensiones'
+    )
+
+    tipo_dimension = models.CharField(max_length=30)
+    valor_entero = models.IntegerField(null=True, blank=True)
+    valor_texto = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        unique_together = ('variante', 'tipo_dimension')
+        indexes = [
+            models.Index(fields=['tipo_dimension']),
+        ]
+
+    def __str__(self):
+        val = self.valor_entero if self.valor_entero is not None else self.valor_texto
+        return f"{self.variante.cod_variante} | {self.tipo_dimension}={val}"
+
+
+# ─────────────────────────
+# PRECIOS (DESACOPLADO)
+# ─────────────────────────
+
+class PrecioVariante(models.Model):
+    variante = models.ForeignKey(
+        VarianteServicio,
+        on_delete=models.CASCADE,
+        related_name='precios'
+    )
+
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+
+    vigente_desde = models.DateField()
+    vigente_hasta = models.DateField(null=True, blank=True)
+
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-vigente_desde']
+        indexes = [
+            models.Index(fields=['vigente_desde']),
+        ]
+
+    def __str__(self):
+        return f"{self.variante.cod_variante} | {self.precio}"
