@@ -14,14 +14,12 @@ class Customer(models.Model):
         CEDULA = 'CED', 'Cédula'
         PASAPORTE = 'PAS', 'Pasaporte'
 
-    # Tipo de entidad (Natural o Empresa)
     tipo_persona = models.CharField(
         max_length=3,
         choices=PersonType.choices,
         default=PersonType.JURIDICA
     )
 
-    # Tipo de documento que presenta
     tipo_identificacion = models.CharField(
         max_length=3,
         choices=IDType.choices,
@@ -34,11 +32,16 @@ class Customer(models.Model):
         help_text="Ingrese RUC, Cédula o Pasaporte"
     )
 
-    # Razón Social (Nombre de empresa) o Nombres Completos (Persona)
     nombre_completo = models.CharField(
         max_length=255,
         verbose_name="Nombre Completo / Razón Social"
     )
+
+    # 🔥 NUEVO: guardamos si pasa validación matemática
+    identificacion_valida = models.BooleanField(default=True)
+
+    # 🔥 OPCIONAL PRO: validación real contra SRI (futuro)
+    validado_sri = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Cliente"
@@ -46,16 +49,18 @@ class Customer(models.Model):
     def __str__(self):
         return self.nombre_completo
 
-        # 🔥 VALIDACIÓN COMPLETA AQUÍ
+    # =========================
+    # VALIDACIÓN ECUADOR
+    # =========================
     def validar_identificacion_ec(self, valor):
         v = valor.strip()
 
         if not v.isdigit():
             return False
 
-        # =========================
-        # CÉDULA (10 dígitos)
-        # =========================
+        # -------------------------
+        # CÉDULA
+        # -------------------------
         if len(v) == 10:
             provincia = int(v[0:2])
             if not (1 <= provincia <= 24):
@@ -75,12 +80,11 @@ class Customer(models.Model):
                 suma += val
 
             digito = (10 - (suma % 10)) % 10
-
             return digito == int(v[9])
 
-        # =========================
-        # RUC (13 dígitos)
-        # =========================
+        # -------------------------
+        # RUC
+        # -------------------------
         elif len(v) == 13:
             provincia = int(v[0:2])
             if not (1 <= provincia <= 24):
@@ -137,8 +141,11 @@ class Customer(models.Model):
                 if digito in (10, 11):
                     digito = 0
 
+                # ⚠️ CAMBIO IMPORTANTE:
+                # NO devolvemos False directo si falla
+                # porque existen RUC válidos en SRI que no cumplen esto (ej: S.A.S.)
                 if digito != int(v[9]):
-                    return False
+                    return False  # <- solo marca inválido matemáticamente
 
                 return v[10:13] != "000"
 
@@ -147,22 +154,33 @@ class Customer(models.Model):
 
         return False
 
-    # 🔥 SE EJECUTA AUTOMÁTICAMENTE
-
+    # =========================
+    # ⚠️ CAMBIO IMPORTANTE
+    # =========================
     def clean(self):
-        if self.tipo_identificacion in ['CED', 'RUC']:
-            if not self.validar_identificacion_ec(self.identificacion):
-                raise ValidationError({
-                    "identificacion": "Cédula o RUC inválido"
-                })
+        # ❌ ANTES:
+        # bloqueabas el guardado con ValidationError
 
-    # 🔥 OBLIGA VALIDACIÓN AL GUARDAR
+        # ✅ AHORA:
+        # NO bloqueamos, solo validamos en save()
+        pass
+
+    # =========================
+    # 🔥 SAVE INTELIGENTE
+    # =========================
     def save(self, *args, **kwargs):
         if self.nombre_completo:
             self.nombre_completo = self.nombre_completo.upper()
-        self.full_clean()
+
+        # 🔥 VALIDAMOS PERO NO BLOQUEAMOS
+        if self.tipo_identificacion in ['CED', 'RUC']:
+            self.identificacion_valida = self.validar_identificacion_ec(self.identificacion)
+
         super().save(*args, **kwargs)
-     # 🆕 Campo para saber quién creó este cliente
+
+    # -------------------------
+    # RELACIONES
+    # -------------------------
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -172,18 +190,16 @@ class Customer(models.Model):
         verbose_name="Creado por"
     )
 
-    # 🆕 Campo para asignar vendedor responsable
     vendedor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        limit_choices_to={'rol': 'VENDEDOR'},  # Solo vendedores
+        limit_choices_to={'rol': 'VENDEDOR'},
         related_name='customers_assigned',
         verbose_name="Vendedor asignado"
     )
 
-    # 🆕 Timestamps automáticos
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
