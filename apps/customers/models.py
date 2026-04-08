@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 
 class Customer(models.Model):
@@ -147,6 +148,7 @@ class Customer(models.Model):
         return False
 
     # 🔥 SE EJECUTA AUTOMÁTICAMENTE
+
     def clean(self):
         if self.tipo_identificacion in ['CED', 'RUC']:
             if not self.validar_identificacion_ec(self.identificacion):
@@ -160,6 +162,30 @@ class Customer(models.Model):
             self.nombre_completo = self.nombre_completo.upper()
         self.full_clean()
         super().save(*args, **kwargs)
+     # 🆕 Campo para saber quién creó este cliente
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='customers_created',
+        verbose_name="Creado por"
+    )
+
+    # 🆕 Campo para asignar vendedor responsable
+    vendedor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'rol': 'VENDEDOR'},  # Solo vendedores
+        related_name='customers_assigned',
+        verbose_name="Vendedor asignado"
+    )
+
+    # 🆕 Timestamps automáticos
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class Branch(models.Model):

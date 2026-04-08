@@ -6,10 +6,14 @@ from .models import User
 class CustomUserAdmin(UserAdmin):
     model = User
 
+    # 🔥 AGREGAR ESTAS 2 LÍNEAS:
+    list_display = ('username', 'email', 'first_name',
+                    'last_name', 'rol', 'is_staff')
+    list_filter = ('rol', 'is_staff', 'is_superuser', 'is_active')
+
     fieldsets = UserAdmin.fieldsets + (
         ('Información adicional', {'fields': ('rol',)}),
     )
-
     add_fieldsets = UserAdmin.add_fieldsets + (
         ('Información adicional', {'fields': ('rol',)}),
     )
