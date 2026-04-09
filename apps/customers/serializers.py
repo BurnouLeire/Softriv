@@ -39,7 +39,8 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'tipo_persona', 'tipo_persona_display',
             'tipo_identificacion', 'tipo_identificacion_display',
-            'identificacion', 'nombre_completo', 'branches', 'contacts'
+            'identificacion', 'nombre_completo', 'branches', 'contacts','created_by',   # 👈 AGREGAR
+            'vendedor',     # 👈 AGREGAR
         ]
 
     def create(self, validated_data):

@@ -1,22 +1,18 @@
-# Create your models here.
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
 class User(AbstractUser):
-    class Role(models.TextChoices):
-        ADMIN = "ADMIN", "Administrador"
-        VENDEDOR = "VENDEDOR", "Vendedor"
-        TECNICO = "TECNICO", "Técnico"
-        DIGITADORA = "DIGITADORA", "Digitadora"
-        CALIDAD = "CALIDAD", "Calidad"
-        GERENCIA = "GERENCIA", "Gerencia"
 
-    rol = models.CharField(
-        max_length=20,
-        choices=Role.choices,
-        default=Role.VENDEDOR
-    )
+    def tiene_rol(self, rol: str) -> bool:
+        return self.groups.filter(name=rol).exists()
+
+    def tiene_alguno_de(self, roles: list[str]) -> bool:
+        return self.groups.filter(name__in=roles).exists()
+
+    @property
+    def roles(self) -> list[str]:
+        return list(self.groups.values_list('name', flat=True))
 
     def __str__(self):
-        return f"{self.username} - {self.rol}"
+        return f"{self.username} - {', '.join(self.roles)}"

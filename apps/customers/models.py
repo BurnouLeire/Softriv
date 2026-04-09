@@ -195,7 +195,7 @@ class Customer(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        limit_choices_to={'rol': 'VENDEDOR'},
+        limit_choices_to={'groups__name': 'Vendedor'},
         related_name='customers_assigned',
         verbose_name="Vendedor asignado"
     )

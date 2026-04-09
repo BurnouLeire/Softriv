@@ -1,7 +1,7 @@
 from django.contrib import admin
-from django import forms
 from .models import Customer, Branch, Contact, Phone
 from apps.users.models import User
+from apps.users.constants import Roles
 
 
 class BranchInline(admin.TabularInline):
@@ -21,7 +21,7 @@ class CustomerAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'vendedor':
-            kwargs['queryset'] = User.objects.filter(rol='VENDEDOR')
+            kwargs['queryset'] = User.objects.filter(groups__name=Roles.VENDEDOR)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
