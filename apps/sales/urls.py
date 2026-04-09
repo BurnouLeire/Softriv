@@ -2,7 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers as nested_routers
-from .views import CotizacionViewSet, CotizacionItemsViewSet
+from .views import CotizacionViewSet, ItemsViewSet
 
 app_name = 'sales'
 
@@ -18,7 +18,7 @@ cotizacion_router = nested_routers.NestedSimpleRouter(
 )
 cotizacion_router.register(
     r'detalles',
-    CotizacionItemsViewSet,
+    ItemsViewSet,
     basename='cotizacion-detalle'
 )
 

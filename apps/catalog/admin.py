@@ -1,13 +1,13 @@
 from django.contrib import admin
 from .models import (
     TipoServicio, Magnitud, Procedimiento,
-    Instrumento, CatalogoServicio, VarianteServicio, PrecioVariante, DimensionVariante,
+    Instrumentos, Servicios, VarianteServicio, PrecioVariante, DimensionVariante,
     # TarifaPunto, TarifaRango
 )
 
 
-class CatalogoServicioInline(admin.TabularInline):
-    model = CatalogoServicio
+class ServiciosInline(admin.TabularInline):
+    model = Servicios
     extra = 1
 
 
@@ -29,8 +29,8 @@ class VarianteServicioAdmin(admin.ModelAdmin):
 admin.site.register(TipoServicio)
 admin.site.register(Magnitud)
 admin.site.register(Procedimiento)
-admin.site.register(Instrumento)
-admin.site.register(CatalogoServicio)
+admin.site.register(Instrumentos)
+admin.site.register(Servicios)
 # admin.site.register([, PrecioVariante, DimensionVariante])
 
 

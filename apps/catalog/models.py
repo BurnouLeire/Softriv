@@ -29,7 +29,7 @@ class Procedimiento(models.Model):
         return self.codigo
 
 
-class Instrumento(models.Model):
+class Instrumentos(models.Model):
     nombre = models.CharField(max_length=255)
     magnitud = models.ForeignKey(Magnitud, on_delete=models.PROTECT)
     codigo_base = models.CharField(max_length=50, blank=True)
@@ -42,12 +42,12 @@ class Instrumento(models.Model):
 # CATÁLOGO PRINCIPAL
 # ─────────────────────────
 
-class CatalogoServicio(models.Model):
+class Servicios(models.Model):
     cod_facturacion = models.CharField(max_length=50, unique=True)
 
     tipo_servicio = models.ForeignKey(TipoServicio, on_delete=models.PROTECT)
     magnitud = models.ForeignKey(Magnitud, on_delete=models.PROTECT)
-    instrumento = models.ForeignKey(Instrumento, on_delete=models.PROTECT)
+    instrumento = models.ForeignKey(Instrumentos, on_delete=models.PROTECT)
 
     procedimiento_base = models.ForeignKey(
         Procedimiento,
@@ -60,6 +60,22 @@ class CatalogoServicio(models.Model):
 
     acreditado = models.BooleanField(default=False)
     activo = models.BooleanField(default=True)
+    # Si usas camelCase en Python y snake_case en DB
+    precio_max = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,        # Permite que en la DB se guarde como NULL
+        blank=True,       # Permite que en formularios de Django se deje vacío
+        #  db_column='precio_max'
+    )
+    # Si usas camelCase en Python y snake_case en DB
+    precio_min = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,        # Permite que en la DB se guarde como NULL
+        blank=True,       # Permite que en formularios de Django se deje vacío
+        # db_column='precio_max'
+    )
 
     class Meta:
         indexes = [
@@ -80,7 +96,7 @@ class CatalogoServicio(models.Model):
 
 class VarianteServicio(models.Model):
     servicio = models.ForeignKey(
-        CatalogoServicio,
+        Servicios,
         on_delete=models.CASCADE,
         related_name='variantes'
     )

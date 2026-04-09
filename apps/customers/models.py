@@ -36,7 +36,7 @@ class Customer(models.Model):
         max_length=255,
         verbose_name="Nombre Completo / Razón Social"
     )
-
+    es_aliado = models.BooleanField(default=False)
     # 🔥 NUEVO: guardamos si pasa validación matemática
     identificacion_valida = models.BooleanField(default=True)
 
@@ -174,7 +174,8 @@ class Customer(models.Model):
 
         # 🔥 VALIDAMOS PERO NO BLOQUEAMOS
         if self.tipo_identificacion in ['CED', 'RUC']:
-            self.identificacion_valida = self.validar_identificacion_ec(self.identificacion)
+            self.identificacion_valida = self.validar_identificacion_ec(
+                self.identificacion)
 
         super().save(*args, **kwargs)
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    CatalogoServicio, VarianteServicio, PrecioVariante,
+    Servicios, VarianteServicio, PrecioVariante,
     DimensionVariante, Magnitud, TipoServicio
 )
 
@@ -28,7 +28,7 @@ class VarianteSerializer(serializers.ModelSerializer):
                   'acreditado', 'precios', 'dimensiones']
 
 
-class CatalogoServicioSerializer(serializers.ModelSerializer):
+class ServiciosSerializer(serializers.ModelSerializer):
     # Expandimos las variantes para que el cotizador tenga todo a la mano
     variantes = VarianteSerializer(many=True, read_only=True)
     magnitud_nombre = serializers.ReadOnlyField(source='magnitud.nombre')
@@ -36,7 +36,7 @@ class CatalogoServicioSerializer(serializers.ModelSerializer):
         source='tipo_servicio.nombre')
 
     class Meta:
-        model = CatalogoServicio
+        model = Servicios
         fields = [
             'id', 'cod_facturacion', 'nombre', 'magnitud_nombre',
             'tipo_servicio_nombre', 'acreditado', 'variantes'

@@ -21,7 +21,8 @@ class CustomerAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'vendedor':
-            kwargs['queryset'] = User.objects.filter(groups__name=Roles.VENDEDOR)
+            kwargs['queryset'] = User.objects.filter(
+                groups__name=Roles.VENDEDOR)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 

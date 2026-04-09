@@ -5,13 +5,13 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 
-from .models import Cotizacion, CotizacionItems
+from .models import Cotizacion, Items
 from .serializers import (
     CotizacionSerializer,
     CotizacionListSerializer,
     CotizacionCreateSerializer,
-    CotizacionItemsSerializer,
-    CotizacionItemsCreateSerializer,
+    ItemsSerializer,
+    ItemsCreateSerializer,
 )
 
 
@@ -119,20 +119,20 @@ class CotizacionViewSet(viewsets.ModelViewSet):
         })
 
 
-class CotizacionItemsViewSet(viewsets.ModelViewSet):
+class ItemsViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestionar items de cotización
     """
-    serializer_class = CotizacionItemsSerializer
+    serializer_class = ItemsSerializer
 
     def get_queryset(self):
         cotizacion_id = self.kwargs.get('cotizacion_pk')
-        return CotizacionItems.objects.filter(cotizacion_id=cotizacion_id)
+        return Items.objects.filter(cotizacion_id=cotizacion_id)
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
-            return CotizacionItemsCreateSerializer
-        return CotizacionItemsSerializer
+            return ItemsCreateSerializer
+        return ItemsSerializer
 
     def create(self, request, cotizacion_pk=None):
         """Agregar un item a una cotización existente"""
@@ -142,15 +142,15 @@ class CotizacionItemsViewSet(viewsets.ModelViewSet):
             estado=Cotizacion.Estado.BORRADOR
         )
 
-        serializer = CotizacionItemsCreateSerializer(data=request.data)
+        serializer = ItemsCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        item = CotizacionItems.objects.create(
+        item = Items.objects.create(
             cotizacion=cotizacion,
             **serializer.validated_data
         )
 
         return Response(
-            CotizacionItemsSerializer(item).data,
+            ItemsSerializer(item).data,
             status=status.HTTP_201_CREATED
         )

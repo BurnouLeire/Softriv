@@ -2,7 +2,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
-from apps.catalog.models import CatalogoServicio
+from apps.catalog.models import Servicios
 from apps.customers.models import Branch
 
 User = get_user_model()
@@ -39,6 +39,11 @@ class Cotizacion(models.Model):
     estado = models.CharField(
         max_length=20, choices=Estado.choices, default=Estado.BORRADOR)
     observaciones = models.TextField(blank=True)
+    certificate_customer = models.ForeignKey(
+        'customers.Customer',
+        on_delete=models.PROTECT,
+        related_name='certificates', blank=True, null=True
+    )
 
     class Meta:
         indexes = [
@@ -71,18 +76,52 @@ class Cotizacion(models.Model):
         return self.numero
 
 
-class CotizacionItems(models.Model):
+class GrupoCotizacion(models.Model):
+    cotizacion = models.ForeignKey(
+        Cotizacion,
+        on_delete=models.CASCADE,
+        related_name='grupos'
+    )
+
+    nombre = models.CharField(max_length=100)
+
+    # Para ordenar en el PDF
+    orden = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['orden']
+
+    def __str__(self):
+        return f"{self.nombre} ({self.cotizacion.numero})"
+
+    @property
+    def total(self):
+        return sum(item.subtotal for item in self.items.all())
+
+    @property
+    def total_items(self):
+        return sum(item.cantidad for item in self.items.all())
+
+
+class Items(models.Model):
     """
     Detalle de la cotización. Cada línea representa un servicio configurado.
     """
+
     cotizacion = models.ForeignKey(
         Cotizacion,
         on_delete=models.CASCADE,
         related_name='items'  # Cambié 'detalles' a 'items' para que sea más semántico
     )
-
+    grupo = models.ForeignKey(
+        GrupoCotizacion,
+        on_delete=models.CASCADE,
+        related_name='items',
+        null=True,
+        blank=True
+    )
     servicio = models.ForeignKey(
-        CatalogoServicio,
+        Servicios,
         on_delete=models.PROTECT,
         verbose_name="Servicio"
     )

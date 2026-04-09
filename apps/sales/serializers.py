@@ -1,9 +1,9 @@
 # apps/sales/serializers.py
 from rest_framework import serializers
-from .models import Cotizacion, CotizacionItems
+from .models import Cotizacion, Items
 
 
-class CotizacionItemsSerializer(serializers.ModelSerializer):
+class ItemsSerializer(serializers.ModelSerializer):
     """Serializer para los items de cotización"""
 
     servicio_id = serializers.IntegerField(
@@ -15,7 +15,7 @@ class CotizacionItemsSerializer(serializers.ModelSerializer):
         source='servicio.magnitud.nombre', read_only=True)
 
     class Meta:
-        model = CotizacionItems
+        model = Items
         fields = [
             'id',
             'servicio_id',
@@ -37,12 +37,12 @@ class CotizacionItemsSerializer(serializers.ModelSerializer):
         return obj.instrumento_nombre
 
 
-class CotizacionItemsCreateSerializer(serializers.ModelSerializer):
+class ItemsCreateSerializer(serializers.ModelSerializer):
     """Serializer para crear/actualizar items"""
     servicio_id = serializers.IntegerField(write_only=True)
 
     class Meta:
-        model = CotizacionItems
+        model = Items
         fields = [
             'id',
             'servicio_id',
@@ -65,7 +65,7 @@ class CotizacionItemsCreateSerializer(serializers.ModelSerializer):
 
 class CotizacionSerializer(serializers.ModelSerializer):
     """Serializer completo de cotización (con items anidados)"""
-    items = CotizacionItemsSerializer(many=True, read_only=True)
+    items = ItemsSerializer(many=True, read_only=True)
     cliente_nombre = serializers.CharField(
         source='cliente.nombre_completo', read_only=True)
     vendedor_nombre = serializers.CharField(
@@ -97,7 +97,7 @@ class CotizacionSerializer(serializers.ModelSerializer):
 
 class CotizacionCreateSerializer(serializers.ModelSerializer):
     """Serializer para crear cotización con items"""
-    items = CotizacionItemsCreateSerializer(many=True)
+    items = ItemsCreateSerializer(many=True)
 
     class Meta:
         model = Cotizacion
@@ -129,7 +129,7 @@ class CotizacionCreateSerializer(serializers.ModelSerializer):
 
         for item_data in items_data:
             servicio_id = item_data.pop('servicio_id')
-            CotizacionItems.objects.create(
+            Items.objects.create(
                 cotizacion=cotizacion,
                 servicio_id=servicio_id,
                 **item_data
