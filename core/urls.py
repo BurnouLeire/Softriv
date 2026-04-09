@@ -36,4 +36,5 @@ urlpatterns = [
     path('api/refresh/', TokenRefreshView.as_view(), name='refresh'),
 
     path('api/catalog/', include('apps.catalog.urls')),
+    path('api/sales/', include('apps.sales.urls', namespace='sales')),
 ]
