@@ -37,4 +37,5 @@ urlpatterns = [
 
     path('api/catalog/', include('apps.catalog.urls')),
     path('api/sales/', include('apps.sales.urls', namespace='sales')),
+    #path('api/', include('apps.uploads.urls')),
 ]

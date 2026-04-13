@@ -63,7 +63,9 @@ INSTALLED_APPS = [
     'apps.customers',
     'apps.catalog',
     'apps.sales',
+    #'apps.uploads',
     'drf_spectacular',
+    'apps.work_orders',
 
 
 ]

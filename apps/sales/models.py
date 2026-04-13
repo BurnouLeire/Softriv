@@ -175,7 +175,7 @@ class Items(models.Model):
 
     def get_descripcion_completa(self):
         """Genera una descripción legible de la configuración"""
-        base_desc = f"{self.servicio.instrumento.nombre} - {self.servicio.tipo_servicio.nombre}"
+        base_desc = f"{self.servicio.tipo_servicio.nombre} de {self.servicio.instrumento.nombre}"
 
         if not self.configuracion:
             return base_desc

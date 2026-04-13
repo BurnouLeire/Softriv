@@ -1,9 +1,10 @@
 # apps/sales/views.py
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import APIView, action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from .services import crear_ot_desde_cotizacion
 
 from .models import Cotizacion, Items
 from .serializers import (
@@ -99,7 +100,14 @@ class CotizacionViewSet(viewsets.ModelViewSet):
 
         cotizacion.estado = Cotizacion.Estado.APROBADA
         cotizacion.save()
-        return Response(CotizacionSerializer(cotizacion).data)
+        order = crear_ot_desde_cotizacion(cotizacion)
+        return Response({
+            "cotizacion": CotizacionSerializer(cotizacion).data,
+            "order_id": order.id
+        }, status=status.HTTP_200_OK)
+
+    
+    
 
     @action(detail=True, methods=['post'])
     def rechazar(self, request, pk=None):
@@ -154,3 +162,17 @@ class ItemsViewSet(viewsets.ModelViewSet):
             ItemsSerializer(item).data,
             status=status.HTTP_201_CREATED
         )
+
+
+
+class AprobarCotizacionView(APIView):
+
+    def post(self, request, pk):
+        cotizacion = Cotizacion.objects.get(pk=pk)
+
+        cotizacion.estado = 'APROBADA'
+        cotizacion.save()
+
+        crear_ot_desde_cotizacion(cotizacion)
+
+        return Response({"ok": True})
