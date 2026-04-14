@@ -63,9 +63,10 @@ INSTALLED_APPS = [
     'apps.customers',
     'apps.catalog',
     'apps.sales',
-    #'apps.uploads',
+    # 'apps.uploads',
     'drf_spectacular',
     'apps.work_orders',
+    'storages',
 
 
 ]
@@ -161,3 +162,72 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 AUTH_USER_MODEL = 'users.User'
+
+# settings.py
+
+# Datos del Laboratorio para PDFs
+LAB_NOMBRE = "LABORATORIO DE CALIBRACIÓN S.A.C."
+LAB_RUC = "20123456789"
+LAB_DIRECCION = "Av. Principal 123, Lima - Perú"
+LAB_TELEFONO = "(01) 123-4567"
+LAB_EMAIL = "contacto@labcalibracion.com"
+
+# URL del logo (opcional, puedes agregarlo al HTML)
+LAB_LOGO_URL = "https://tudominio.com/static/img/logo_lab.png"
+
+# Usar TUS nombres de variables del .env
+SUPABASE_URL = os.getenv('SUPABASE_URL', 'http://192.168.10.15:8000')
+# ← Service role para operaciones admin
+SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+# ← Anon key para operaciones públicas
+SUPABASE_ANON_KEY = os.getenv('SUPABASE_KEY')
+# ============================================
+# CONFIGURACIÓN SUPABASE STORAGE vía S3 (django-storages)
+# ============================================
+
+# Credenciales S3 desde tu .env
+AWS_ACCESS_KEY_ID = os.getenv('S3_PROTOCOL_ACCESS_KEY_ID', '625729a08b95bf1b7ff351a663f3a23c')
+AWS_SECRET_ACCESS_KEY = os.getenv('S3_PROTOCOL_ACCESS_KEY_SECRET', '850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907')
+AWS_STORAGE_BUCKET_NAME = 'test-public'
+AWS_S3_ENDPOINT_URL = f"{SUPABASE_URL}/storage/v1/s3"
+AWS_S3_REGION_NAME = 'stub'
+AWS_S3_CUSTOM_DOMAIN = f"{SUPABASE_URL}/storage/v1/s3/public/{AWS_STORAGE_BUCKET_NAME}"
+AWS_DEFAULT_ACL = 'public-read'
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = False  # URLs públicas sin token
+AWS_S3_USE_SSL = False
+AWS_S3_VERIFY = False
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_S3_ADDRESSING_STYLE = 'path'
+
+# Configurar storages (Django 4.2+)
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+# Compatibilidad con versiones anteriores
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# URL base para archivos de medios
+MEDIA_URL = f"{AWS_S3_CUSTOM_DOMAIN}/"
+# ============ CONFIGURACIÓN CORS COMPLETA ============
+# Permite tu frontend desde cualquier máquina en la red local
+# ============ CONFIGURACIÓN FINAL (desarrollo) ============
+
+# Hosts permitidos - modo desarrollo
+ALLOWED_HOSTS = ['*']  # SOLO para desarrollo en red local
+
+# CORS - modo desarrollo
+CORS_ALLOW_ALL_ORIGINS = True  # Permite cualquier origen (fácil para pruebas)
+CORS_ALLOW_CREDENTIALS = True
+
+# Si quieres ser más específico (recomendado para producción después)
+# CORS_ALLOWED_ORIGINS = [
+#     "http://192.168.56.1:3000",
+#     "http://localhost:3000",
+# ]

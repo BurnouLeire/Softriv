@@ -1,0 +1,497 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cotización {{ cotizacion.codigo }}</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Helvetica", "Arial", sans-serif;
+        font-size: 10pt;
+        line-height: 1.4;
+        color: #2c3e50;
+      }
+
+      /* Encabezado */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #1a5276;
+        padding-bottom: 15px;
+      }
+
+      .logo-area {
+        width: 40%;
+      }
+
+      .lab-name {
+        font-size: 18pt;
+        font-weight: bold;
+        color: #1a5276;
+        text-transform: uppercase;
+      }
+
+      .lab-subtitle {
+        font-size: 9pt;
+        color: #5d6d7e;
+        margin-top: 5px;
+      }
+
+      .cotizacion-info {
+        width: 35%;
+        text-align: right;
+      }
+
+      .cotizacion-titulo {
+        font-size: 16pt;
+        font-weight: bold;
+        color: #1a5276;
+        margin-bottom: 10px;
+      }
+
+      .cotizacion-numero {
+        background-color: #eaf2f8;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 12pt;
+        font-weight: bold;
+        color: #1a5276;
+        margin-bottom: 5px;
+      }
+
+      .cotizacion-fecha {
+        color: #5d6d7e;
+        font-size: 9pt;
+      }
+
+      /* Información de cliente */
+      .info-section {
+        margin-bottom: 20px;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-left: 4px solid #3498db;
+        border-radius: 4px;
+      }
+
+      .info-title {
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 8px;
+        font-size: 11pt;
+        text-transform: uppercase;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .info-item {
+        margin-bottom: 5px;
+      }
+
+      .info-label {
+        font-weight: bold;
+        color: #5d6d7e;
+        display: inline-block;
+        width: 80px;
+      }
+
+      .info-value {
+        color: #2c3e50;
+      }
+
+      /* Tablas de servicios */
+      .grupo {
+        margin-bottom: 25px;
+        page-break-inside: avoid;
+      }
+
+      .grupo-header {
+        background-color: #1a5276;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px 4px 0 0;
+        font-size: 11pt;
+        font-weight: bold;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      th {
+        background-color: #d4e6f1;
+        color: #1a5276;
+        padding: 8px 6px;
+        text-align: left;
+        font-weight: bold;
+        font-size: 9pt;
+        text-transform: uppercase;
+        border-bottom: 2px solid #1a5276;
+      }
+
+      td {
+        padding: 8px 6px;
+        border-bottom: 1px solid #d5d8dc;
+        vertical-align: top;
+      }
+
+      .item-servicio {
+        font-weight: bold;
+        color: #2c3e50;
+      }
+
+      .item-instrumento {
+        color: #5d6d7e;
+        font-size: 9pt;
+      }
+
+      .item-config {
+        color: #7f8c8d;
+        font-size: 8pt;
+        font-style: italic;
+      }
+
+      .item-equipo {
+        color: #2980b9;
+        font-size: 8pt;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      /* Subtotal por grupo */
+      .grupo-subtotal {
+        margin-top: 10px;
+        padding: 8px 12px;
+        background-color: #eaf2f8;
+        text-align: right;
+        font-weight: bold;
+        border-radius: 0 0 4px 4px;
+      }
+
+      /* Totales generales */
+      .totales-section {
+        margin-top: 20px;
+        float: right;
+        width: 40%;
+        border: 1px solid #d5d8dc;
+        border-radius: 4px;
+        padding: 12px;
+        background-color: #f8f9fa;
+      }
+
+      .total-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        border-bottom: 1px dashed #bdc3c7;
+      }
+
+      .total-line.total-final {
+        border-bottom: none;
+        font-size: 12pt;
+        font-weight: bold;
+        color: #1a5276;
+        margin-top: 5px;
+        padding-top: 10px;
+        border-top: 2px solid #1a5276;
+      }
+
+      /* Notas y condiciones */
+      .notas-section {
+        margin-top: 30px;
+        clear: both;
+        padding: 15px;
+        background-color: #fef9e7;
+        border: 1px solid #f9e79f;
+        border-radius: 4px;
+        font-size: 9pt;
+      }
+
+      .notas-title {
+        font-weight: bold;
+        color: #7d6608;
+        margin-bottom: 8px;
+      }
+
+      .condiciones {
+        margin-top: 15px;
+        font-size: 8pt;
+        color: #5d6d7e;
+      }
+
+      /* Pie de página */
+      .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        font-size: 8pt;
+        color: #95a5a6;
+        text-align: center;
+        padding: 8px 0;
+        border-top: 1px solid #d5d8dc;
+        margin-top: 20px;
+      }
+
+      .certificate-info {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #e8f8f5;
+        border-radius: 4px;
+        font-size: 9pt;
+      }
+
+      .certificate-title {
+        color: #117864;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ENCABEZADO -->
+    <div class="header">
+      <div class="logo-area">
+        <div class="lab-name">{{ laboratorio.nombre }}</div>
+        <div class="lab-subtitle">
+          {{ laboratorio.direccion }}<br />
+          RUC: {{ laboratorio.ruc }}<br />
+          Tel: {{ laboratorio.telefono }} | Email: {{ laboratorio.email }}
+        </div>
+      </div>
+      <div class="cotizacion-info">
+        <div class="cotizacion-titulo">COTIZACIÓN</div>
+        <div class="cotizacion-numero">{{ cotizacion.codigo }}</div>
+        <div class="cotizacion-fecha">Fecha: {{ cotizacion.fecha }}</div>
+        {% if cotizacion.numero != cotizacion.codigo %}
+        <div class="cotizacion-fecha">Ref: {{ cotizacion.numero }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- INFORMACIÓN DEL CLIENTE -->
+    <div class="info-section">
+      <div class="info-title">Cliente / Solicitante</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Nombre:</span>
+          <span class="info-value">{{ cliente.nombre }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">RUC/DNI:</span>
+          <span class="info-value">{{ cliente.ruc|default:"N/A" }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Dirección:</span>
+          <span class="info-value"
+            >{{ sucursal.direccion|default:cliente.direccion }}</span
+          >
+        </div>
+        <div class="info-item">
+          <span class="info-label">Contacto:</span>
+          <span class="info-value">{{ cliente.contacto|default:"N/A" }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Teléfono:</span>
+          <span class="info-value">{{ cliente.telefono|default:"N/A" }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Email:</span>
+          <span class="info-value">{{ cliente.email|default:"N/A" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- VENDEDOR -->
+    <div style="margin-bottom: 15px; font-size: 9pt; color: #5d6d7e">
+      <strong>Vendedor:</strong> {{ vendedor.nombre }} ({{ vendedor.email }})
+    </div>
+
+    <!-- SERVICIOS COTIZADOS POR GRUPOS -->
+    <h3 style="margin: 20px 0 10px 0; color: #1a5276">
+      SERVICIOS DE CALIBRACIÓN COTIZADOS
+    </h3>
+
+    {% for grupo in grupos %}
+    <div class="grupo">
+      <div class="grupo-header">
+        {{ grupo.nombre }} ({{ grupo.cantidad_items }} {% if
+        grupo.cantidad_items == 1 %}servicio{% else %}servicios{% endif %})
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th width="25%">Servicio</th>
+            <th width="20%">Instrumento</th>
+            <th width="25%">Configuración / Equipo</th>
+            <th width="8%">Cant.</th>
+            <th width="12%">P. Unit.</th>
+            <th width="10%">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in grupo.items %}
+          <tr>
+            <td>
+              <div class="item-servicio">{{ item.servicio_nombre }}</div>
+            </td>
+            <td>
+              <div class="item-instrumento">{{ item.instrumento }}</div>
+            </td>
+            <td>
+              {% if item.configuracion %}
+              <div class="item-config">{{ item.configuracion }}</div>
+              {% endif %} {% if item.marca or item.modelo or item.serie %}
+              <div class="item-equipo">
+                {% if item.marca %}Marca: {{ item.marca }}<br />{% endif %} {%
+                if item.modelo %}Modelo: {{ item.modelo }}<br />{% endif %} {%
+                if item.serie %}Serie: {{ item.serie }}{% endif %}
+              </div>
+              {% endif %} {% if item.notas %}
+              <div style="font-size: 7pt; color: #e67e22; margin-top: 3px">
+                <strong>Nota:</strong> {{ item.notas }}
+              </div>
+              {% endif %}
+            </td>
+            <td class="text-center">{{ item.cantidad }}</td>
+            <td class="text-right">
+              $ {{ item.precio_unitario|floatformat:2 }}
+            </td>
+            <td class="text-right">
+              <strong>$ {{ item.subtotal|floatformat:2 }}</strong>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="grupo-subtotal">
+        Subtotal {{ grupo.nombre }}: $ {{ grupo.subtotal|floatformat:2 }}
+      </div>
+    </div>
+    {% empty %}
+    <p style="color: #e74c3c">
+      No hay servicios registrados en esta cotización.
+    </p>
+    {% endfor %}
+
+    <!-- CLIENTE CERTIFICADO (si existe) -->
+    {% if cliente_certificado %}
+    <div class="certificate-info">
+      <div class="certificate-title">
+        Información para Certificado de Calibración
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px">
+        <div>
+          <strong>Razón Social en Certificado:</strong> {{
+          cliente_certificado.nombre }}
+        </div>
+        <div>
+          <strong>RUC en Certificado:</strong> {{
+          cliente_certificado.ruc|default:"N/A" }}
+        </div>
+        <div>
+          <strong>Dirección en Certificado:</strong> {{
+          cliente_certificado.direccion|default:"N/A" }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- TOTALES GENERALES -->
+    <div class="totales-section">
+      <div class="total-line">
+        <span>Subtotal:</span>
+        <span>$ {{ totales.subtotal|floatformat:2 }}</span>
+      </div>
+      <div class="total-line">
+        <span>IGV (18%):</span>
+        <span>$ {{ totales.igv|floatformat:2 }}</span>
+      </div>
+      <div class="total-line total-final">
+        <span>TOTAL USD:</span>
+        <span>$ {{ totales.total|floatformat:2 }}</span>
+      </div>
+    </div>
+
+    <!-- OBSERVACIONES Y CONDICIONES -->
+    <div class="notas-section">
+      {% if cotizacion.observaciones %}
+      <div class="notas-title">Observaciones:</div>
+      <p>{{ cotizacion.observaciones }}</p>
+      {% endif %}
+
+      <div class="condiciones">
+        <strong>Condiciones de la Cotización:</strong><br />
+        • Precios expresados en Dólares Americanos (USD).<br />
+        • Validez de la oferta: 15 días calendario.<br />
+        • Tiempo de entrega: Según cronograma acordado con el cliente.<br />
+        • Forma de pago: 50% adelanto, 50% contra entrega de certificados.<br />
+        • Los certificados de calibración son trazables a patrones nacionales e
+        internacionales.<br />
+        • Esta cotización incluye la emisión de certificados digitales con firma
+        electrónica.<br />
+        <br />
+        <strong>Estado de Cotización:</strong> {{ cotizacion.estado }}<br />
+        <strong>Fecha de generación:</strong> {{ fecha_generacion }}
+      </div>
+    </div>
+
+    <!-- FIRMAS -->
+    <div
+      style="margin-top: 30px; display: flex; justify-content: space-between"
+    >
+      <div style="width: 30%; text-align: center">
+        <div
+          style="
+            border-top: 1px solid #2c3e50;
+            padding-top: 5px;
+            margin-top: 40px;
+          "
+        >
+          {{ vendedor.nombre }}<br />
+          <span style="font-size: 8pt; color: #5d6d7e">Asesor Comercial</span>
+        </div>
+      </div>
+      <div style="width: 30%; text-align: center">
+        <div
+          style="
+            border-top: 1px solid #2c3e50;
+            padding-top: 5px;
+            margin-top: 40px;
+          "
+        >
+          {{ cliente.nombre }}<br />
+          <span style="font-size: 8pt; color: #5d6d7e">Cliente</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIE DE PÁGINA -->
+    <div class="footer">
+      {{ laboratorio.nombre }} - Laboratorio Acreditado ISO/IEC 17025:2017<br />
+      Documento generado electrónicamente el {{ fecha_generacion }}
+    </div>
+  </body>
+</html>
