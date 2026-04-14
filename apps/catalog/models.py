@@ -43,7 +43,7 @@ class Instrumentos(models.Model):
 # ─────────────────────────
 
 class Servicios(models.Model):
-    cod_facturacion = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=50, unique=True)
 
     tipo_servicio = models.ForeignKey(TipoServicio, on_delete=models.PROTECT)
     magnitud = models.ForeignKey(Magnitud, on_delete=models.PROTECT)
@@ -79,7 +79,7 @@ class Servicios(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['cod_facturacion']),
+            models.Index(fields=['code']),
         ]
 
     def save(self, *args, **kwargs):
@@ -87,7 +87,7 @@ class Servicios(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.cod_facturacion} - {self.nombre}"
+        return f"{self.code} - {self.nombre}"
 
 
 # ─────────────────────────

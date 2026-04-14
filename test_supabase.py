@@ -1,8 +1,4 @@
 # test_supabase_fixed.py
-"""
-Test de Supabase Storage usando TU .env real
-Ejecutar: python test_supabase_fixed.py
-"""
 
 import uuid
 import os
