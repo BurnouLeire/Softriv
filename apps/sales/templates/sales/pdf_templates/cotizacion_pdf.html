@@ -1,0 +1,307 @@
+<!-- apps/sales/templates/sales/pdf_templates/cotizacion_pdf.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cotización {{ cotizacion.codigo }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Helvetica", "Arial", sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #2c3e50;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #1a5276;
+            padding-bottom: 15px;
+        }
+        
+        .logo-area {
+            width: 40%;
+        }
+        
+        .lab-name {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #1a5276;
+            text-transform: uppercase;
+        }
+        
+        .lab-subtitle {
+            font-size: 9pt;
+            color: #5d6d7e;
+            margin-top: 5px;
+        }
+        
+        .cotizacion-info {
+            width: 35%;
+            text-align: right;
+        }
+        
+        .cotizacion-titulo {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #1a5276;
+            margin-bottom: 10px;
+        }
+        
+        .cotizacion-numero {
+            background-color: #eaf2f8;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12pt;
+            font-weight: bold;
+            color: #1a5276;
+            margin-bottom: 5px;
+        }
+        
+        .info-section {
+            margin-bottom: 20px;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        
+        .info-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 11pt;
+            text-transform: uppercase;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .grupo {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        
+        .grupo-header {
+            background-color: #1a5276;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px 4px 0 0;
+            font-size: 11pt;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        
+        th {
+            background-color: #d4e6f1;
+            color: #1a5276;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 9pt;
+            border-bottom: 2px solid #1a5276;
+        }
+        
+        td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #d5d8dc;
+            vertical-align: top;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .grupo-subtotal {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #eaf2f8;
+            text-align: right;
+            font-weight: bold;
+            border-radius: 0 0 4px 4px;
+        }
+        
+        .totales-section {
+            margin-top: 20px;
+            float: right;
+            width: 40%;
+            border: 1px solid #d5d8dc;
+            border-radius: 4px;
+            padding: 12px;
+            background-color: #f8f9fa;
+        }
+        
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dashed #bdc3c7;
+        }
+        
+        .total-line.total-final {
+            border-bottom: none;
+            font-size: 12pt;
+            font-weight: bold;
+            color: #1a5276;
+            margin-top: 5px;
+            padding-top: 10px;
+            border-top: 2px solid #1a5276;
+        }
+        
+        .notas-section {
+            margin-top: 30px;
+            clear: both;
+            padding: 15px;
+            background-color: #fef9e7;
+            border: 1px solid #f9e79f;
+            border-radius: 4px;
+            font-size: 9pt;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            font-size: 8pt;
+            color: #95a5a6;
+            text-align: center;
+            padding: 8px 0;
+            border-top: 1px solid #d5d8dc;
+        }
+    </style>
+</head>
+<body>
+    <!-- ENCABEZADO -->
+    <div class="header">
+        <div class="logo-area">
+            <div class="lab-name">{{ laboratorio.nombre }}</div>
+            <div class="lab-subtitle">
+                {{ laboratorio.direccion }}<br />
+                RUC: {{ laboratorio.ruc }}<br />
+                Tel: {{ laboratorio.telefono }} | Email: {{ laboratorio.email }}
+            </div>
+        </div>
+        <div class="cotizacion-info">
+            <div class="cotizacion-titulo">COTIZACIÓN</div>
+            <div class="cotizacion-numero">{{ cotizacion.codigo }}</div>
+            <div class="cotizacion-fecha">Fecha: {{ cotizacion.fecha|slice:"0:10" }}</div>
+        </div>
+    </div>
+
+    <!-- CLIENTE -->
+    <div class="info-section">
+        <div class="info-title">DATOS DEL CLIENTE</div>
+        <div class="info-grid">
+            <div><strong>Empresa:</strong> {{ cliente.nombre }}</div>
+            <div><strong>RUC:</strong> {{ cliente.ruc }}</div>
+            <div><strong>Dirección:</strong> {{ cliente.direccion }}</div>
+            <div><strong>Contacto:</strong> {{ cliente.contacto }}</div>
+            <div><strong>Teléfono:</strong> {{ cliente.telefono }}</div>
+            <div><strong>Email:</strong> {{ cliente.email }}</div>
+        </div>
+    </div>
+
+    <!-- SERVICIOS -->
+    {% for grupo in grupos %}
+    <div class="grupo">
+        <div class="grupo-header">{{ grupo.nombre }}</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Servicio</th>
+                    <th>Instrumento</th>
+                    <th width="8%">Cant.</th>
+                    <th width="12%">P. Unit.</th>
+                    <th width="10%">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in grupo.items %}
+                <tr>
+                    <td>{{ item.servicio_nombre }}</td>
+                    <td>{{ item.instrumento }}</td>
+                    <td class="text-center">{{ item.cantidad }}</td>
+                    <td class="text-right">$ {{ item.precio_unitario|floatformat:2 }}</td>
+                    <td class="text-right"><strong>$ {{ item.subtotal|floatformat:2 }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="grupo-subtotal">
+            Subtotal: $ {{ grupo.subtotal|floatformat:2 }}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- TOTALES -->
+    <div class="totales-section">
+        <div class="total-line">
+            <span>Subtotal:</span>
+            <span>$ {{ totales.subtotal|floatformat:2 }}</span>
+        </div>
+        <div class="total-line">
+            <span>IGV (18%):</span>
+            <span>$ {{ totales.igv|floatformat:2 }}</span>
+        </div>
+        <div class="total-line total-final">
+            <span>TOTAL USD:</span>
+            <span>$ {{ totales.total|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <!-- OBSERVACIONES -->
+    <div class="notas-section">
+        <strong>Observaciones:</strong><br />
+        {{ cotizacion.observaciones|default:"Sin observaciones" }}
+        
+        <div style="margin-top: 10px; font-size: 8pt;">
+            <strong>Forma de pago:</strong> {{ forma_pago }}<br />
+            <strong>Validez:</strong> {{ validez_dias }} días<br />
+            <strong>Estado:</strong> {{ cotizacion.estado }}
+        </div>
+    </div>
+
+    <!-- FIRMAS -->
+    <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+        <div style="width: 40%; text-align: center;">
+            <div style="border-top: 1px solid #2c3e50; padding-top: 5px;">
+                {{ vendedor.nombre }}<br />
+                <span style="font-size: 8pt;">Asesor Comercial</span>
+            </div>
+        </div>
+        <div style="width: 40%; text-align: center;">
+            <div style="border-top: 1px solid #2c3e50; padding-top: 5px;">
+                {{ cliente.nombre }}<br />
+                <span style="font-size: 8pt;">Cliente</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        {{ laboratorio.nombre }} - Laboratorio Acreditado ISO/IEC 17025:2017<br />
+        Documento generado electrónicamente el {{ fecha_generacion }}
+    </div>
+</body>
+</html>

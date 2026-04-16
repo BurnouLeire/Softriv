@@ -1,0 +1,77 @@
+{
+  "laboratorio": {
+    "nombre": "LABORATORIO DE CALIBRACIÓN RIVALESA",
+    "direccion": "Av. Principal 123, Guayaquil - Ecuador",
+    "ruc": "0999999999001",
+    "telefono": "04-5018070",
+    "email": "laboratorio@rivalesa.com"
+  },
+  "cotizacion": {
+    "codigo": "RIV.LC.178.26",
+    "numero": "178",
+    "fecha": "2026-04-15",
+    "estado": "COTIZADO",
+    "observaciones": "Calibración de pesos patrones"
+  },
+  "cliente": {
+    "nombre": "EMPRESA ABC",
+    "ruc": "1799999999001",
+    "direccion": "Principal",
+    "contacto": "Ing. Juan Pérez",
+    "telefono": "0999999999",
+    "email": "juan@empresaabc.com"
+  },
+  "sucursal": {
+    "direccion": "Planta Industrial, Sector Norte"
+  },
+  "vendedor": {
+    "nombre": "Ing. María González",
+    "email": "mgonzalez@rivalesa.com"
+  },
+  "grupos": [
+    {
+      "nombre": "CALIBRACIÓN DE PESAS",
+      "cantidad_items": 2,
+      "items": [
+        {
+          "servicio_nombre": "Calibración de Peso",
+          "instrumento": "Peso patrón 20 kg",
+          "configuracion": "Clase M1",
+          "marca": "OIML",
+          "modelo": "M1-20",
+          "serie": "P-20001",
+          "cantidad": 2,
+          "precio_unitario": 25.00,
+          "subtotal": 50.00
+        }
+      ],
+      "subtotal": 50.00
+    },
+    {
+      "nombre": "SUMINISTRO DE PATRONES",
+      "cantidad_items": 1,
+      "items": [
+        {
+          "servicio_nombre": "Suministro de pesos patrones",
+          "instrumento": "Peso 20 kg",
+          "configuracion": "Clase M1 con certificado",
+          "cantidad": 2,
+          "precio_unitario": 125.00,
+          "subtotal": 250.00
+        }
+      ],
+      "subtotal": 250.00
+    }
+  ],
+  "totales": {
+    "subtotal": 300.00,
+    "igv": 54.00,
+    "total": 354.00
+  },
+  "cliente_certificado": {
+    "nombre": "EMPRESA ABC S.A.",
+    "ruc": "1799999999001",
+    "direccion": "Principal"
+  },
+  "fecha_generacion": "2026-04-15 14:30:00"
+}

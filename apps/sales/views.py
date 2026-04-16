@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from .services.services import crear_ot_desde_cotizacion
+from .services.pdf_service import PDFService, PDFGenerationError  # 👈 NUEVO
 
 from .models import Cotizacion, Items
 from .serializers import (
@@ -116,15 +117,101 @@ class CotizacionViewSet(viewsets.ModelViewSet):
         cotizacion.estado = Cotizacion.Estado.RECHAZADA
         cotizacion.save()
         return Response(CotizacionSerializer(cotizacion).data)
-
     @action(detail=True, methods=['get'])
     def pdf(self, request, pk=None):
-        """Generar PDF de la cotización (placeholder)"""
+        """
+        Generar PDF de la cotización.
+        
+        GET /api/cotizaciones/{id}/pdf/
+        Query params opcionales:
+            - download=true → Forzar descarga (attachment)
+            - preview=true → Vista previa en navegador
+        """
+        from .services.pdf_service import CotizacionPDFGenerator, PDFGenerationError
+        
         cotizacion = self.get_object()
-        return Response({
-            'message': f'PDF de cotización {cotizacion.numero}',
-            'cotizacion': CotizacionSerializer(cotizacion).data
-        })
+        
+        # Verificar que la cotización tenga datos mínimos
+        if not cotizacion.cliente:
+            return Response(
+                {'error': 'La cotización no tiene un cliente asignado'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Usar el generador específico
+            pdf_generator = CotizacionPDFGenerator(cotizacion)
+            pdf_bytes = pdf_generator.generate(output_type='binary')
+            
+            # Determinar si es descarga o vista previa
+            download = request.query_params.get('download', 'false').lower() == 'true'
+            preview = request.query_params.get('preview', 'false').lower() == 'true'
+            
+            if preview:
+                disposition = 'inline'
+            elif download:
+                disposition = 'attachment'
+            else:
+                disposition = 'inline'  # Por defecto, vista previa
+            
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'{disposition}; filename="cotizacion_{cotizacion.numero}.pdf"'
+            
+            return response
+            
+        except PDFGenerationError as e:
+            return Response(
+                {'error': f'Error generando PDF: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            logger.error(f"Error inesperado generando PDF para cotización {cotizacion.id}: {str(e)}")
+            return Response(
+                {'error': f'Error inesperado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    @action(detail=True, methods=['get'])
+    def generar_pdf(self, request, pk=None):
+        """
+        Generar PDF de una cotización existente.
+        
+        GET /api/sales/cotizaciones/{id}/generar_pdf/
+        """
+        from .services.pdf_service import CotizacionPDFGenerator, PDFGenerationError
+        
+        cotizacion = self.get_object()
+        
+        try:
+            # Generar PDF desde el modelo
+            pdf_generator = CotizacionPDFGenerator(cotizacion)
+            pdf_bytes = pdf_generator.generate(output_type='binary')
+            
+            # Determinar si es descarga o vista previa
+            download = request.query_params.get('download', 'false').lower() == 'true'
+            
+            if download:
+                disposition = 'attachment'
+                filename = f"cotizacion_{cotizacion.numero}_{timezone.now().strftime('%Y%m%d')}.pdf"
+            else:
+                disposition = 'inline'
+                filename = f"cotizacion_{cotizacion.numero}.pdf"
+            
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+            
+            return response
+            
+        except PDFGenerationError as e:
+            return Response(
+                {'error': f'Error generando PDF: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error inesperado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
 
 
 class ItemsViewSet(viewsets.ModelViewSet):
@@ -162,6 +249,8 @@ class ItemsViewSet(viewsets.ModelViewSet):
             ItemsSerializer(item).data,
             status=status.HTTP_201_CREATED
         )
+        
+
 
 
 
@@ -176,3 +265,55 @@ class AprobarCotizacionView(APIView):
         crear_ot_desde_cotizacion(cotizacion)
 
         return Response({"ok": True})
+
+# Agrega esto al final de tu views.py, fuera del ViewSet
+
+class GenerarPDFCotizacionView(APIView):
+    """
+    Vista para generar PDF de cotización desde datos JSON.
+    Útil para pruebas o para generación sin modelo existente.
+    """
+    
+    def post(self, request):
+        """
+        POST /api/cotizaciones/generar-pdf/
+        Body: JSON con los datos de la cotización
+        """
+        try:
+            data = request.data
+            
+            # Validar datos mínimos
+            if not data.get('cliente'):
+                return Response(
+                    {'error': 'Se requiere información del cliente'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            pdf_service = PDFService()
+            pdf_bytes = pdf_service.generar_cotizacion_pdf(
+                data,
+                output_type='binary'
+            )
+            
+            # Determinar si es descarga
+            download = request.query_params.get('download', 'false').lower() == 'true'
+            
+            if download:
+                response = HttpResponse(pdf_bytes, content_type='application/pdf')
+                response['Content-Disposition'] = 'attachment; filename="cotizacion_generada.pdf"'
+            else:
+                response = HttpResponse(pdf_bytes, content_type='application/pdf')
+                response['Content-Disposition'] = 'inline; filename="cotizacion_generada.pdf"'
+            
+            return response
+            
+        except PDFGenerationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Error inesperado: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

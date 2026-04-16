@@ -1,0 +1,94 @@
+<!-- sales/templates/sales/pdf_templates/base_pdf.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Documento{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Helvetica", "Arial", sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #2c3e50;
+            margin: 2cm;
+        }
+        
+        /* Estilos base comunes */
+        @page {
+            size: A4;
+            margin: 2cm;
+            
+            @top-center {
+                content: element(header);
+            }
+            
+            @bottom-center {
+                content: element(footer);
+            }
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #1a5276;
+            padding-bottom: 15px;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            font-size: 8pt;
+            color: #95a5a6;
+            text-align: center;
+            padding: 8px 0;
+            border-top: 1px solid #d5d8dc;
+        }
+        
+        /* Otros estilos comunes */
+        .page-break {
+            page-break-before: always;
+        }
+        
+        {% block extra_styles %}{% endblock %}
+    </style>
+</head>
+<body>
+    <!-- Header común -->
+    <div class="header">
+        {% block header %}
+        <div class="logo-area">
+            <div class="lab-name">{{ laboratorio.nombre }}</div>
+            <div class="lab-subtitle">
+                {{ laboratorio.direccion }}<br />
+                RUC: {{ laboratorio.ruc }}<br />
+                Tel: {{ laboratorio.telefono }}
+            </div>
+        </div>
+        {% endblock %}
+    </div>
+    
+    <!-- Contenido principal -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer común -->
+    <div class="footer">
+        {% block footer %}
+        {{ laboratorio.nombre }} - Documento generado electrónicamente<br />
+        Página <span class="pageNumber"></span> de <span class="totalPages"></span>
+        {% endblock %}
+    </div>
+</body>
+</html>

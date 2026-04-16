@@ -167,11 +167,28 @@ AUTH_USER_MODEL = 'users.User'
 # settings.py
 
 # Datos del Laboratorio para PDFs
-LAB_NOMBRE = "LABORATORIO DE CALIBRACIÓN S.A.C."
-LAB_RUC = "20123456789"
-LAB_DIRECCION = "Av. Principal 123, Lima - Perú"
-LAB_TELEFONO = "(01) 123-4567"
-LAB_EMAIL = "contacto@labcalibracion.com"
+# settings.py - Añade al final o en la sección de configuraciones
+
+# Media files (para guardar PDFs si usas output_type='path')
+WEASYPRINT_BASE_URL = None  # Para rutas relativas
+WEASYPRINT_FONT_CACHE = os.path.join(BASE_DIR, 'cache', 'fonts')
+
+# Templates PDF
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 
 # URL del logo (opcional, puedes agregarlo al HTML)
 LAB_LOGO_URL = "https://tudominio.com/static/img/logo_lab.png"
