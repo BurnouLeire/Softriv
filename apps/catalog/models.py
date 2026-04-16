@@ -16,9 +16,6 @@ class TipoServicio(models.Model):
 class Magnitud(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     activo = models.BooleanField(default=True)
-    precio_base = models.DecimalField(max_digits=10, decimal_places=2)
-    precio_minimo = models.DecimalField(max_digits=10, decimal_places=2)
-    precio_maximo = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return self.nombre
@@ -27,7 +24,7 @@ class Magnitud(models.Model):
 class Unidades(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     simbolo = models.CharField(max_length=10, unique=True)
-
+    
 
     def __str__(self):
         return self.nombre
