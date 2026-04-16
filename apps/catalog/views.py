@@ -9,7 +9,7 @@ from .models import (
     Servicios, 
     #VarianteServicio, PrecioVariante,
     #DimensionVariante, 
-    Magnitude, TipoServicio, Instrumentos, Procedimiento
+    Magnitude, TypeService, Instruments, Procedures
 )
 from .serializers import (
     ServiciosSerializer,
@@ -18,12 +18,12 @@ from .serializers import (
     #PrecioSerializer,
     #DimensionSerializer,
     MagnitudeSerializer,
-    TipoServicioSerializer,
+    TypeServiceSerializer,
 )
 
 
 class ServiciosViewSet(viewsets.ModelViewSet):
-    queryset = Servicios.objects.filter(activo=True).prefetch_related(
+    queryset = Servicios.objects.all().prefetch_related(
         'variantes__precios',
         'variantes__dimensiones',
         'magnitud',
@@ -45,25 +45,25 @@ class ServiciosViewSet(viewsets.ModelViewSet):
         """Devuelve los catálogos necesarios para crear servicios"""
         return Response({
             'magnitudes': MagnitudeSerializer(
-                Magnitude.objects.filter(activo=True), 
+                Magnitude.objects.filter(active=True), 
                 many=True
             ).data,
-            'tipos_servicio': TipoServicioSerializer(
-                TipoServicio.objects.filter(activo=True), 
+            'tipos_servicio': TypeServiceSerializer(
+                TypeService.objects.filter(active=True), 
                 many=True
             ).data,
             'instrumentos': [
                 {
                     'id': i.id, 
-                    'nombre': i.nombre, 
+                    'name': i.name, 
                     'magnitud_id': i.magnitud_id,
-                    'codigo_base': i.codigo_base
+                    'code': i.code
                 }
-                for i in Instrumentos.objects.all()
+                for i in Instruments.objects.all()
             ],
             'procedimientos': [
-                {'id': p.id, 'codigo': p.codigo, 'nombre': p.nombre}
-                for p in Procedimiento.objects.all()
+                {'id': p.id, 'codigo': p.code, 'nombre': p.name}
+                for p in Procedures.objects.all()
             ],
             'dimension_config': {
                 'TEMPERATURA Y HUMEDAD': {
@@ -128,10 +128,10 @@ class ServiciosViewSet(viewsets.ModelViewSet):
 
 
 class MagnitudViewSet(viewsets.ModelViewSet):
-    queryset = Magnitude.objects.filter(activo=True)
+    queryset = Magnitude.objects.filter(active=True)
     serializer_class = MagnitudeSerializer
 
 
-class TipoServicioViewSet(viewsets.ModelViewSet):
-    queryset = TipoServicio.objects.filter(activo=True)
-    serializer_class = TipoServicioSerializer
+class TypeServiceViewSet(viewsets.ModelViewSet):
+    queryset = TypeService.objects.filter(requires_instrument=True)
+    serializer_class = TypeServiceSerializer

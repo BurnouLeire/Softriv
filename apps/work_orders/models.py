@@ -1,5 +1,5 @@
 from django.db import models
-from apps.sales.models import Cotizacion
+from apps.sales.models import Quote
 # Create your models here.
 
 class Order (models.Model):
@@ -11,7 +11,7 @@ class Order (models.Model):
         CANCELADA = 'CANCELADA'
 
     sales = models.ForeignKey(
-        Cotizacion,
+        Quote,
         on_delete=models.PROTECT,
         null=True,
         blank=True,

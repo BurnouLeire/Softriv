@@ -5,7 +5,7 @@ from .base import (
     # PrecioSerializer,
     # DimensionSerializer,
     MagnitudeSerializer,
-    TipoServicioSerializer,
+    TypeServiceSerializer,
 )
 
 from .writable import (
@@ -18,14 +18,7 @@ from .writable import (
 __all__ = [
     # Base (lectura)
     'ServiciosSerializer',
-    # 'VarianteSerializer',
-    # 'PrecioSerializer',
-    # 'DimensionSerializer',
     'MagnitudeSerializer',
-    'TipoServicioSerializer',
-    # Writable (escritura)
+    'TypeServiceSerializer',
     'ServicioWritableSerializer',
-    # 'VarianteWritableSerializer',
-    # 'PrecioWritableSerializer',
-    # 'DimensionWritableSerializer',
 ]

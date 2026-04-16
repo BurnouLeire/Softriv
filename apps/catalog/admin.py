@@ -1,10 +1,11 @@
 from django.contrib import admin
 from .models import (
-    TipoServicio, Magnitude, Procedimiento,
-    Instrumentos, Servicios, MagnitudePrice
+    TypeService, Magnitude, Procedures,
+    Instruments, Servicios, MagnitudePrice, InstrumentMagnitudes, ProceduresMagnitudes
     # VarianteServicio, PrecioVariante, DimensionVariante,
     # TarifaPunto, TarifaRango
 )
+
 class MagnitudePriceInline(admin.TabularInline):
     model = MagnitudePrice
     extra = 1
@@ -12,29 +13,25 @@ class MagnitudePriceInline(admin.TabularInline):
 class ServiciosInline(admin.TabularInline):
     model = Servicios
     extra = 1
+class InstrumentMagnitudesInline(admin.TabularInline):
+    model = InstrumentMagnitudes
+    extra = 1
 
-
-# class DimensionInline(admin.TabularInline):
-#     model = DimensionVariante
-#     extra = 1
-
-
-# class PrecioInline(admin.TabularInline):
-#     model = PrecioVariante
-#     extra = 1
-
-
+class ProceduresMagnitudesInline(admin.TabularInline):
+    model = ProceduresMagnitudes
 @admin.register(Magnitude)
 class MagnitudeAdmin(admin.ModelAdmin):
     inlines = [MagnitudePriceInline]
 
+@admin.register(Procedures)
+class ProceduresAdmin(admin.ModelAdmin):
+    inlines = [ProceduresMagnitudesInline]
 
-admin.site.register(TipoServicio)
-admin.site.register(Procedimiento)
-admin.site.register(Instrumentos)
+@admin.register(Instruments)
+class InstrumentsAdmin(admin.ModelAdmin):
+    inlines = [InstrumentMagnitudesInline]
+
+admin.site.register(TypeService)
 admin.site.register(Servicios)
 # admin.site.register([, PrecioVariante, DimensionVariante])
 
-
-# admin.site.register(TarifaPunto)
-# admin.site.register(TarifaRango)

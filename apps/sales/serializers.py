@@ -1,6 +1,6 @@
 # apps/sales/serializers.py
 from rest_framework import serializers
-from .models import Cotizacion, Items, GrupoCotizacion
+from .models import Quote, Items, GrupoCotizacion
 from django.db import transaction
 
 class ItemsSerializer(serializers.ModelSerializer):
@@ -73,7 +73,7 @@ class CotizacionSerializer(serializers.ModelSerializer):
     subtotal = serializers.SerializerMethodField()
 
     class Meta:
-        model = Cotizacion
+        model = Quote
         fields = [
             'id',
             'numero',
@@ -101,7 +101,7 @@ class CotizacionCreateSerializer(serializers.ModelSerializer):
     items = ItemsCreateSerializer(many=True)
 
     class Meta:
-        model = Cotizacion
+        model = Quote
         fields = [
             'cliente_id',
             'sucursal_id',
@@ -122,12 +122,12 @@ class CotizacionCreateSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
 
-            cotizacion = Cotizacion.objects.create(
+            cotizacion = Quote.objects.create(
                 cliente_id=validated_data['cliente_id'],
                 sucursal_id=validated_data.get('sucursal_id'),
                 vendedor=vendedor,
                 observaciones=validated_data.get('observaciones', ''),
-                estado=Cotizacion.Estado.BORRADOR
+                estado=Quote.Estado.BORRADOR
             )
 
             # 🔥 Crear grupo GENERAL
@@ -158,7 +158,7 @@ class CotizacionListSerializer(serializers.ModelSerializer):
     subtotal = serializers.SerializerMethodField()
 
     class Meta:
-        model = Cotizacion
+        model = Quote
         fields = [
             'id',
             'numero',

@@ -1,6 +1,6 @@
 # apps/sales/management/commands/listar_cotizaciones.py
 from django.core.management.base import BaseCommand
-from apps.sales.models import Cotizacion
+from apps.sales.models import Quote
 
 class Command(BaseCommand):
     help = 'Lista todas las cotizaciones disponibles'
@@ -20,7 +20,7 @@ class Command(BaseCommand):
         self.stdout.write('📋 LISTA DE COTIZACIONES')
         self.stdout.write('=' * 80)
         
-        cotizaciones = Cotizacion.objects.all().order_by('-id')[:limit]
+        cotizaciones = Quote.objects.all().order_by('-id')[:limit]
         
         if not cotizaciones.exists():
             self.stdout.write(self.style.WARNING('No hay cotizaciones en la base de datos'))
@@ -44,7 +44,7 @@ class Command(BaseCommand):
                 f"${subtotal:<11.2f}"
             )
         
-        total_cotizaciones = Cotizacion.objects.count()
+        total_cotizaciones = Quote.objects.count()
         self.stdout.write('-' * 95)
         self.stdout.write(f"Total de cotizaciones en BD: {total_cotizaciones}")
         self.stdout.write(f"Mostrando las últimas {min(limit, total_cotizaciones)}")

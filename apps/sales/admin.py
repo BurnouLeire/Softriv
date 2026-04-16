@@ -1,7 +1,7 @@
 # apps/sales/admin.py
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from .models import Cotizacion, Items, GrupoCotizacion
+from .models import Quote, Items, GrupoCotizacion
 
 User = get_user_model()
 
@@ -21,8 +21,8 @@ class GrupoInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(Cotizacion)
-class CotizacionAdmin(admin.ModelAdmin):
+@admin.register(Quote)
+class QuoteAdmin(admin.ModelAdmin):
     inlines = [GrupoInline]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):

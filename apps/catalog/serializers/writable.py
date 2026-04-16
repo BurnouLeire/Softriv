@@ -5,7 +5,7 @@ from ..models import (
     #VarianteServicio,
     #PrecioVariante,
     #DimensionVariante, 
-    Magnitude, TipoServicio, Instrumentos, Procedimiento
+    Magnitude, TypeService, Instruments, Procedures,
 )
 
 
@@ -72,20 +72,20 @@ class ServicioWritableSerializer(serializers.ModelSerializer):
     #variantes = VarianteWritableSerializer(many=True, required=False)
     
     # Relaciones
-    magnitud_id = serializers.PrimaryKeyRelatedField(
-        queryset=Magnitude.objects.filter(activo=True),
+    magnitud_id = serializers.PrimaryKeyRelatedField(   
+        queryset=Magnitude.objects.filter(active=True),
         source='magnitud'
     )
     tipo_servicio_id = serializers.PrimaryKeyRelatedField(
-        queryset=TipoServicio.objects.filter(activo=True),
+        queryset=TypeService.objects.filter(active=True),
         source='tipo_servicio'
     )
     instrumento_id = serializers.PrimaryKeyRelatedField(
-        queryset=Instrumentos.objects.all(),
+        queryset=Instruments.objects.filter(is_measurable=True),
         source='instrumento'
     )
     procedimiento_base_id = serializers.PrimaryKeyRelatedField(
-        queryset=Procedimiento.objects.all(),
+        queryset=Procedures.objects.filter(active=True),
         source='procedimiento_base',
         required=False,
         allow_null=True
@@ -94,7 +94,7 @@ class ServicioWritableSerializer(serializers.ModelSerializer):
     class Meta:
         model = Servicios
         fields = [
-            'code', 'nombre', 'acreditado', 'activo',
+            'code', 'name', 'acreditado', 'active',
             'magnitud_id', 'tipo_servicio_id', 'instrumento_id',
             'procedimiento_base_id', 'precio_min', 'precio_max',
             #'variantes'

@@ -7,7 +7,7 @@ from django.db.models import Q
 from .services.services import crear_ot_desde_cotizacion
 from .services.pdf_service import PDFService, PDFGenerationError  # 👈 NUEVO
 
-from .models import Cotizacion, Items
+from .models import Quote, Items
 from .serializers import (
     CotizacionSerializer,
     CotizacionListSerializer,
@@ -23,7 +23,7 @@ class CotizacionViewSet(viewsets.ModelViewSet):
     """
 
     def get_queryset(self):
-        queryset = Cotizacion.objects.prefetch_related(
+        queryset = Quote.objects.prefetch_related(
             'items', 'cliente', 'vendedor')
 
         # Filtros por query params
@@ -78,13 +78,13 @@ class CotizacionViewSet(viewsets.ModelViewSet):
         """Cambiar estado a ENVIADA"""
         cotizacion = self.get_object()
 
-        if cotizacion.estado != Cotizacion.Estado.BORRADOR:
+        if cotizacion.estado != Quote.Estado.BORRADOR:
             return Response(
                 {'error': 'Solo se pueden enviar cotizaciones en estado BORRADOR'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        cotizacion.estado = Cotizacion.Estado.ENVIADA
+        cotizacion.estado = Quote.Estado.ENVIADA
         cotizacion.save()
         return Response(CotizacionSerializer(cotizacion).data)
 
@@ -93,13 +93,13 @@ class CotizacionViewSet(viewsets.ModelViewSet):
         """Cambiar estado a APROBADA"""
         cotizacion = self.get_object()
 
-        if cotizacion.estado != Cotizacion.Estado.ENVIADA:
+        if cotizacion.estado != Quote.Estado.ENVIADA:
             return Response(
                 {'error': 'Solo se pueden aprobar cotizaciones enviadas'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        cotizacion.estado = Cotizacion.Estado.APROBADA
+        cotizacion.estado = Quote.Estado.APROBADA
         cotizacion.save()
         order = crear_ot_desde_cotizacion(cotizacion)
         return Response({
@@ -114,7 +114,7 @@ class CotizacionViewSet(viewsets.ModelViewSet):
     def rechazar(self, request, pk=None):
         """Cambiar estado a RECHAZADA"""
         cotizacion = self.get_object()
-        cotizacion.estado = Cotizacion.Estado.RECHAZADA
+        cotizacion.estado = Quote.Estado.RECHAZADA
         cotizacion.save()
         return Response(CotizacionSerializer(cotizacion).data)
     @action(detail=True, methods=['get'])
@@ -232,9 +232,9 @@ class ItemsViewSet(viewsets.ModelViewSet):
     def create(self, request, cotizacion_pk=None):
         """Agregar un item a una cotización existente"""
         cotizacion = get_object_or_404(
-            Cotizacion,
+            Quote,
             id=cotizacion_pk,
-            estado=Cotizacion.Estado.BORRADOR
+            estado=Quote.Estado.BORRADOR
         )
 
         serializer = ItemsCreateSerializer(data=request.data)
@@ -257,7 +257,7 @@ class ItemsViewSet(viewsets.ModelViewSet):
 class AprobarCotizacionView(APIView):
 
     def post(self, request, pk):
-        cotizacion = Cotizacion.objects.get(pk=pk)
+        cotizacion = Quote.objects.get(pk=pk)
 
         cotizacion.estado = 'APROBADA'
         cotizacion.save()

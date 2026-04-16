@@ -1,7 +1,7 @@
 # apps/sales/management/commands/generar_pdf_cotizacion.py
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from apps.sales.models import Cotizacion
+from apps.sales.models import Quote
 from apps.sales.services.pdf_service import CotizacionPDFGenerator, PDFGenerationError
 import os
 
@@ -34,7 +34,7 @@ class Command(BaseCommand):
         
         try:
             # Obtener la cotización
-            cotizacion = Cotizacion.objects.get(id=cotizacion_id)
+            cotizacion = Quote.objects.get(id=cotizacion_id)
             
             # Calcular subtotal
             subtotal = sum(item.subtotal for item in cotizacion.items.all())
@@ -81,7 +81,7 @@ class Command(BaseCommand):
                 except Exception as e:
                     self.stdout.write(f'\n⚠️ No se pudo abrir la carpeta: {e}')
             
-        except Cotizacion.DoesNotExist:
+        except Quote.DoesNotExist:
             raise CommandError(f'No existe una cotización con ID {cotizacion_id}')
         except PDFGenerationError as e:
             raise CommandError(f'Error generando PDF: {e}')

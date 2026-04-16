@@ -4,7 +4,7 @@ from ..models import (
     Servicios, 
     # VarianteServicio, PrecioVariante,
     # DimensionVariante, 
-    Magnitude, TipoServicio
+    Magnitude, TypeService
 )
 
 
@@ -63,7 +63,7 @@ class MagnitudeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TipoServicioSerializer(serializers.ModelSerializer):
+class TypeServiceSerializer(serializers.ModelSerializer):
     class Meta:
-        model = TipoServicio
+        model = TypeService
         fields = '__all__'

@@ -9,7 +9,7 @@ from django.db import transaction
 User = get_user_model()
 
 
-class Cotizacion(models.Model):
+class Quote(models.Model):
     class Estado(models.TextChoices):
         BORRADOR = 'BORRADOR'
         ENVIADA = 'ENVIADA'
@@ -70,7 +70,7 @@ class Cotizacion(models.Model):
             year = date.today().year
 
             with transaction.atomic():
-                last = Cotizacion.objects.select_for_update().filter(
+                last = Quote.objects.select_for_update().filter(
                     numero__endswith=f'-{year}'
                 ).order_by('-numero').first()
 
@@ -91,7 +91,7 @@ class Cotizacion(models.Model):
 
 class GrupoCotizacion(models.Model):
     cotizacion = models.ForeignKey(
-        Cotizacion,
+        Quote,
         on_delete=models.CASCADE,
         related_name='grupos'
     )
@@ -208,4 +208,47 @@ class Items(models.Model):
         if not self.grupo:
             from apps.sales.models import GrupoCotizacion
             self.grupo, _ = GrupoCotizacion.objects.get_or_create(nombre="GENERAL")
+        super().save(*args, **kwargs)
+class SubItem (models.Model):
+    item = models.ForeignKey(Items, on_delete=models.CASCADE, related_name='subitems')
+    servicio = models.ForeignKey(Servicios, on_delete=models.PROTECT)
+    configuracion = models.JSONField(default=dict, blank=True)
+    cantidad = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1)])
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    marca = models.CharField(max_length=100, blank=True)
+    modelo = models.CharField(max_length=100, blank=True)
+    serie = models.CharField(max_length=100, blank=True)
+    notas = models.TextField(blank=True)
+    class Meta:
+        indexes = [
+            models.Index(fields=['item']),
+            models.Index(fields=['servicio']),
+        ]
+        verbose_name = "SubItem de Cotización"
+        verbose_name_plural = "SubItems de Cotizaciones"
+    @property
+    def subtotal(self):
+        """Calcula el subtotal del item"""
+        return self.cantidad * self.precio_unitario
+    @property
+    def instrumento_nombre(self):
+        """Obtiene el nombre del instrumento desde el servicio"""
+        return self.servicio.instrumento.nombre if self.servicio.instrumento else "N/A"
+    def get_descripcion_completa(self):
+        """Genera una descripción legible de la configuración"""
+        base_desc = f"{self.servicio.tipo_servicio.nombre} de {self.servicio.instrumento.nombre}"
+        if not self.configuracion:
+            return base_desc
+        detalles = []
+        for key, value in self.configuracion.items():
+            nombre_legible = key.replace('_', ' ').title()
+            detalles.append(f"{nombre_legible}: {value}")
+        config_text = ", ".join(detalles)
+        return f"{base_desc} ({config_text})"
+    def __str__(self):
+        return f"{self.item.grupo.cotizacion} - {self.servicio}"
+    def save(self, *args, **kwargs):
+        if not self.item:
+            from apps.sales.models import Items
+            self.item, _ = Items.objects.get_or_create(nombre="GENERAL")
         super().save(*args, **kwargs)
