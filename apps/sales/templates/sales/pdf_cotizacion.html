@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cotización {{ cotizacion.numero }}</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            margin: 2cm;
+            @frame header_frame {
+                -pdf-frame-content: header_content;
+                left: 50pt; width: 495pt; top: 30pt; height: 100pt;
+            }
+            @frame footer_frame {
+                -pdf-frame-content: footer_content;
+                left: 50pt; width: 495pt; top: 800pt; height: 30pt;
+            }
+        }
+        body {
+            font-family: Helvetica, sans-serif;
+            font-size: 10pt;
+            color: #333333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 18pt;
+            margin: 0;
+            padding: 0;
+            color: #000;
+        }
+        .info-cliente {
+            margin-bottom: 20px;
+        }
+        .info-cliente td {
+            padding: 3px 0;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        /* Estilos de la tabla de costos */
+        .costos-title {
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 5px;
+            text-decoration: underline;
+        }
+        .table-costos {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+        }
+        .table-costos th {
+            border: 1px solid #000;
+            background-color: #f2f2f2;
+            text-align: center;
+            font-weight: bold;
+            padding: 5px;
+        }
+        .table-costos td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }
+        .table-costos .desc {
+            text-align: left;
+        }
+        .table-costos .grupo-header {
+            background-color: #ffffff;
+            font-weight: bold;
+            text-align: center;
+            padding: 5px;
+        }
+        .totales {
+            margin-top: 10px;
+            width: 100%;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header_content">
+        <div class="header">
+            <h1>{{ LAB_NOMBRE }}</h1>
+            <p>RUC: {{ LAB_RUC }} <br/>
+               Dirección: {{ LAB_DIRECCION }} <br/>
+               Teléfono: {{ LAB_TELEFONO }} | Correo: {{ LAB_EMAIL }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Información General -->
+    <table style="width: 100%;" class="info-cliente">
+        <tr>
+            <td width="20%" class="bold">Cotización N°:</td>
+            <td width="30%">{{ cotizacion.numero }}</td>
+            <td width="20%" class="bold">Fecha:</td>
+            <td width="30%">{{ cotizacion.fecha|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Cliente:</td>
+            <td>{{ cotizacion.cliente.nombre_completo|default:cotizacion.cliente.nombre_empresa }}</td>
+            <td class="bold">Sucursal:</td>
+            <td>{{ cotizacion.sucursal.nombre }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Atención:</td>
+            <td colspan="3">{{ cotizacion.vendedor.get_full_name }}</td>
+        </tr>
+        {% if cotizacion.observaciones %}
+        <tr>
+            <td class="bold">Observaciones:</td>
+            <td colspan="3">{{ cotizacion.observaciones }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <br/>
+    <div class="costos-title">2.- Costos:</div>
+
+    <table class="table-costos">
+        <thead>
+            <tr>
+                <th width="8%">Ítem</th>
+                <th width="15%">Código</th>
+                <th width="40%">Descripción / Procedimiento</th>
+                <th width="8%">Cant.</th>
+                <th width="14%">Valor Unitario</th>
+                <th width="15%">Valor Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for grupo_nombre, items in grupos.items %}
+                <!-- Fila de Grupo (ej. Mantenimiento, Calibración, etc) -->
+                <tr>
+                    <td colspan="6" class="grupo-header">{{ grupo_nombre }}</td>
+                </tr>
+                
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <!-- Si tiene código el servicio o instrumento se mapea aquí, si no, se usa una N/A o similar -->
+                    <td>{{ item.servicio.id|stringformat:"04d" }}</td> 
+                    <td class="desc">
+                        {{ item.get_descripcion_completa }}
+                        {% if item.marca or item.modelo or item.serie %}
+                            <br/><span style="font-size: 8pt; color: #555;">
+                            {% if item.marca %}Marca: {{ item.marca }} {% endif %}
+                            {% if item.modelo %}Mod: {{ item.modelo }} {% endif %}
+                            {% if item.serie %}S/N: {{ item.serie }}{% endif %}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.cantidad }}</td>
+                    <td>$ {{ item.precio_unitario }}</td>
+                    <td>$ {{ item.subtotal }}</td>
+                </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Totales -->
+    <!-- Agrega aquí IVA si aplica -->
+    <table class="totales" border="0" cellpadding="5">
+        <tr>
+            <td width="70%"></td>
+            <td width="15%" class="bold">SUBTOTAL:</td>
+            <td width="15%">$ {{ cotizacion.subtotal|default:"0.00" }}</td>
+        </tr>
+    </table>
+
+    <div id="footer_content" style="text-align: right; color: #777;">
+        Página <pdf:pagenumber> de <pdf:pagecount>
+    </div>
+
+</body>
+</html>

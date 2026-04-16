@@ -9,13 +9,21 @@ User = get_user_model()
 class ItemsInline(admin.TabularInline):
     model = Items
     extra = 1
-    fields = ['grupo', 'servicio', 'cantidad', 'precio_unitario']
+
+
+@admin.register(GrupoCotizacion)
+class GrupoCotizacionAdmin(admin.ModelAdmin):
+    inlines = [ItemsInline]
+
+
+class GrupoInline(admin.TabularInline):
+    model = GrupoCotizacion
+    extra = 1
 
 
 @admin.register(Cotizacion)
 class CotizacionAdmin(admin.ModelAdmin):
-    list_display = ['numero', 'cliente', 'fecha', 'estado']
-    inlines = [ItemsInline]
+    inlines = [GrupoInline]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'vendedor':
@@ -25,6 +33,7 @@ class CotizacionAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-# Ocultar GrupoCotizacion del menú
-admin.site.register(GrupoCotizacion)
-admin.site._registry[GrupoCotizacion].has_module_permission = lambda request: False
+# # Ocultar GrupoCotizacion del menú
+# admin.site.register(GrupoCotizacion)
+admin.site.register(Items)
+# admin.site._registry[GrupoCotizacion].has_module_permission = lambda request: False

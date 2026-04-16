@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from apps.catalog.models import Servicios
 from apps.customers.models import Branch
+from django.db import transaction
 
 User = get_user_model()
 
@@ -30,7 +31,8 @@ class Cotizacion(models.Model):
         max_length=50,
         unique=True,
         blank=True,
-        help_text="Número amigable para mostrar al cliente"
+        help_text="Número amigable para mostrar al cliente",
+        editable=False
     )
     cliente = models.ForeignKey('customers.Customer', on_delete=models.PROTECT)
     sucursal = models.ForeignKey(Branch, on_delete=models.PROTECT)
@@ -45,6 +47,14 @@ class Cotizacion(models.Model):
         related_name='certificates', blank=True, null=True
     )
 
+    # NUEVO CAMPO: Guardará el archivo PDF en Supabase a través de django-storages
+    archivo_pdf = models.FileField(
+        upload_to='cotizaciones/pdfs/', 
+        blank=True, 
+        null=True, 
+        help_text="PDF generado de la cotización guardado en Supabase"
+    )
+
     class Meta:
         indexes = [
             models.Index(fields=['numero']),
@@ -54,26 +64,29 @@ class Cotizacion(models.Model):
         verbose_name_plural = "Cotizaciones"
 
     def save(self, *args, **kwargs):
+        is_new = self.pk is None  # detectar si es nueva
         if not self.numero:
-            # Auto-generar un número simple por defecto
             from datetime import date
             year = date.today().year
-            count = Cotizacion.objects.filter(
-                numero__startswith=f'COT-{year}'
-            ).count() + 1
-            self.numero = f'COT-{year}-{count:04d}'
 
-        # Si no hay código de empresa, puedes auto-generarlo o dejarlo en blanco
-        if not self.codigo_empresa:
-            # Opcional: generar basado en reglas de la empresa
-            pass
+            with transaction.atomic():
+                last = Cotizacion.objects.select_for_update().filter(
+                    numero__endswith=f'-{year}'
+                ).order_by('-numero').first()
+
+                if last:
+                    last_num = int(last.numero.split('-')[1])
+                    next_num = last_num + 1
+                else:
+                    next_num = 1
+
+                self.numero = f'RIV.LC-{next_num:04d}-{year}'
 
         super().save(*args, **kwargs)
 
+
     def __str__(self):
-        if self.codigo_empresa:
-            return f"{self.codigo_empresa} ({self.numero})"
-        return self.numero
+        return f"{self.cliente} - {self.numero}"
 
 
 class GrupoCotizacion(models.Model):
@@ -92,7 +105,7 @@ class GrupoCotizacion(models.Model):
         ordering = ['orden']
 
     def __str__(self):
-        return f"{self.nombre} ({self.cotizacion.numero})"
+        return f"{self.nombre}- {self.cotizacion.numero} - {self.cotizacion.cliente}"
 
     @property
     def total(self):
@@ -108,17 +121,17 @@ class Items(models.Model):
     Detalle de la cotización. Cada línea representa un servicio configurado.
     """
 
-    cotizacion = models.ForeignKey(
-        Cotizacion,
-        on_delete=models.CASCADE,
-        related_name='items'  # Cambié 'detalles' a 'items' para que sea más semántico
-    )
+    # cotizacion = models.ForeignKey(
+    #     Cotizacion,
+    #     on_delete=models.CASCADE,
+    #     related_name='items'  # Cambié 'detalles' a 'items' para que sea más semántico
+    # )
     grupo = models.ForeignKey(
         GrupoCotizacion,
         on_delete=models.CASCADE,
         related_name='items',
-        null=True,
-        blank=True
+        null=False,
+        blank=False
     )
     servicio = models.ForeignKey(
         Servicios,
@@ -157,7 +170,7 @@ class Items(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['cotizacion']),
+            models.Index(fields=['grupo']),
             models.Index(fields=['servicio']),
         ]
         verbose_name = "Item de Cotización"
@@ -189,4 +202,10 @@ class Items(models.Model):
         return f"{base_desc} ({config_text})"
 
     def __str__(self):
-        return f"{self.cotizacion.numero} - {self.get_descripcion_completa()[:50]}"
+        return f"{self.grupo.cotizacion} - {self.servicio}"
+        
+    def save(self, *args, **kwargs):
+        if not self.grupo:
+            from apps.sales.models import GrupoCotizacion
+            self.grupo, _ = GrupoCotizacion.objects.get_or_create(nombre="GENERAL")
+        super().save(*args, **kwargs)
