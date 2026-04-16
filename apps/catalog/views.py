@@ -6,16 +6,18 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import (
-    Servicios, VarianteServicio, PrecioVariante,
-    DimensionVariante, Magnitud, TipoServicio, Instrumentos, Procedimiento
+    Servicios, 
+    #VarianteServicio, PrecioVariante,
+    #DimensionVariante, 
+    Magnitude, TipoServicio, Instrumentos, Procedimiento
 )
 from .serializers import (
     ServiciosSerializer,
     ServicioWritableSerializer,
-    VarianteSerializer,
-    PrecioSerializer,
-    DimensionSerializer,
-    MagnitudSerializer,
+    #VarianteSerializer,
+    #PrecioSerializer,
+    #DimensionSerializer,
+    MagnitudeSerializer,
     TipoServicioSerializer,
 )
 
@@ -42,8 +44,8 @@ class ServiciosViewSet(viewsets.ModelViewSet):
     def metadata(self, request):
         """Devuelve los catálogos necesarios para crear servicios"""
         return Response({
-            'magnitudes': MagnitudSerializer(
-                Magnitud.objects.filter(activo=True), 
+            'magnitudes': MagnitudeSerializer(
+                Magnitude.objects.filter(activo=True), 
                 many=True
             ).data,
             'tipos_servicio': TipoServicioSerializer(
@@ -95,39 +97,39 @@ class ServiciosViewSet(viewsets.ModelViewSet):
             }
         })
     
-    @action(detail=True, methods=['get'])
-    def variantes(self, request, pk=None):
-        """Obtiene todas las variantes de un servicio"""
-        servicio = self.get_object()
-        variantes = servicio.variantes.filter(activo=True)
-        serializer = VarianteSerializer(variantes, many=True)
-        return Response(serializer.data)
+    # @action(detail=True, methods=['get'])
+    # def variantes(self, request, pk=None):
+    #     """Obtiene todas las variantes de un servicio"""
+    #     servicio = self.get_object()
+    #     variantes = servicio.variantes.filter(activo=True)
+    #     serializer = VarianteSerializer(variantes, many=True)
+    #     return Response(serializer.data)
 
 
-class VarianteServicioViewSet(viewsets.ModelViewSet):
-    queryset = VarianteServicio.objects.filter(activo=True)
-    serializer_class = VarianteSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['servicio', 'acreditado', 'activo']
+# class VarianteServicioViewSet(viewsets.ModelViewSet):
+#     queryset = VarianteServicio.objects.filter(activo=True)
+#     serializer_class = VarianteSerializer
+#     filter_backends = [DjangoFilterBackend]
+#     filterset_fields = ['servicio', 'acreditado', 'activo']
 
 
-class PrecioVarianteViewSet(viewsets.ModelViewSet):
-    queryset = PrecioVariante.objects.filter(activo=True)
-    serializer_class = PrecioSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['variante', 'activo']
+# class PrecioVarianteViewSet(viewsets.ModelViewSet):
+#     queryset = PrecioVariante.objects.filter(activo=True)
+#     serializer_class = PrecioSerializer
+#     filter_backends = [DjangoFilterBackend]
+#     filterset_fields = ['variante', 'activo']
 
 
-class DimensionVarianteViewSet(viewsets.ModelViewSet):
-    queryset = DimensionVariante.objects.all()
-    serializer_class = DimensionSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['variante', 'tipo_dimension']
+# class DimensionVarianteViewSet(viewsets.ModelViewSet):
+#     queryset = DimensionVariante.objects.all()
+#     serializer_class = DimensionSerializer
+#     filter_backends = [DjangoFilterBackend]
+#     filterset_fields = ['variante', 'tipo_dimension']
 
 
 class MagnitudViewSet(viewsets.ModelViewSet):
-    queryset = Magnitud.objects.filter(activo=True)
-    serializer_class = MagnitudSerializer
+    queryset = Magnitude.objects.filter(activo=True)
+    serializer_class = MagnitudeSerializer
 
 
 class TipoServicioViewSet(viewsets.ModelViewSet):

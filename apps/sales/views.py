@@ -14,6 +14,7 @@ from .serializers import (
     ItemsSerializer,
     ItemsCreateSerializer,
 )
+from .pdf_service import generar_pdf_cotizacion
 
 
 class CotizacionViewSet(viewsets.ModelViewSet):
@@ -117,14 +118,27 @@ class CotizacionViewSet(viewsets.ModelViewSet):
         cotizacion.save()
         return Response(CotizacionSerializer(cotizacion).data)
 
-    @action(detail=True, methods=['get'])
-    def pdf(self, request, pk=None):
-        """Generar PDF de la cotización (placeholder)"""
+    @action(detail=True, methods=['post', 'get'])
+    def generar_pdf(self, request, pk=None):
+        """Generar PDF de la cotización usando xhtml2pdf y guardarlo en Supabase"""
         cotizacion = self.get_object()
-        return Response({
-            'message': f'PDF de cotización {cotizacion.numero}',
-            'cotizacion': CotizacionSerializer(cotizacion).data
-        })
+        
+        # Si es GET y ya tiene PDF generado, lo devolvemos (opcional, para evitar re-generar)
+        if request.method == 'GET' and cotizacion.archivo_pdf:
+            return Response({
+                'message': 'PDF ya existente',
+                'url': cotizacion.archivo_pdf.url
+            })
+            
+        # Si no existe o es POST, lo generamos/regeneramos
+        pdf_url = generar_pdf_cotizacion(cotizacion)
+        
+        if pdf_url:
+            return Response({
+                'message': 'PDF generado exitosamente',
+                'url': pdf_url
+            })
+        return Response({'error': 'Error al generar PDF'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ItemsViewSet(viewsets.ModelViewSet):

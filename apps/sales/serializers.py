@@ -1,7 +1,7 @@
 # apps/sales/serializers.py
 from rest_framework import serializers
-from .models import Cotizacion, Items
-
+from .models import Cotizacion, Items, GrupoCotizacion
+from django.db import transaction
 
 class ItemsSerializer(serializers.ModelSerializer):
     """Serializer para los items de cotización"""
@@ -88,6 +88,7 @@ class CotizacionSerializer(serializers.ModelSerializer):
             'observaciones',
             'items',
             'subtotal',
+            'archivo_pdf',
         ]
 
     def get_subtotal(self, obj):
@@ -119,21 +120,32 @@ class CotizacionCreateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         vendedor = request.user if request and request.user.is_authenticated else None
 
-        cotizacion = Cotizacion.objects.create(
-            cliente_id=validated_data['cliente_id'],
-            sucursal_id=validated_data.get('sucursal_id'),
-            vendedor=vendedor,
-            observaciones=validated_data.get('observaciones', ''),
-            estado=Cotizacion.Estado.BORRADOR
-        )
+        with transaction.atomic():
 
-        for item_data in items_data:
-            servicio_id = item_data.pop('servicio_id')
-            Items.objects.create(
-                cotizacion=cotizacion,
-                servicio_id=servicio_id,
-                **item_data
+            cotizacion = Cotizacion.objects.create(
+                cliente_id=validated_data['cliente_id'],
+                sucursal_id=validated_data.get('sucursal_id'),
+                vendedor=vendedor,
+                observaciones=validated_data.get('observaciones', ''),
+                estado=Cotizacion.Estado.BORRADOR
             )
+
+            # 🔥 Crear grupo GENERAL
+            grupo_general = GrupoCotizacion.objects.create(
+                cotizacion=cotizacion,
+                nombre="GENERAL",
+                orden=0
+            )
+
+            # Crear items dentro del grupo
+            for item_data in items_data:
+                servicio_id = item_data.pop('servicio_id')
+
+                Items.objects.create(
+                    grupo=grupo_general,
+                    servicio_id=servicio_id,
+                    **item_data
+                )
 
         return cotizacion
 
@@ -158,6 +170,7 @@ class CotizacionListSerializer(serializers.ModelSerializer):
             'observaciones',
             'total_items',
             'subtotal',
+            'archivo_pdf',
         ]
 
     def get_total_items(self, obj):
