@@ -83,12 +83,7 @@ class Cotizacion(models.Model):
                 self.numero = f'RIV.LC-{next_num:04d}-{year}'
 
         super().save(*args, **kwargs)
-        if is_new:
-            GrupoCotizacion.objects.get_or_create(
-                cotizacion=self,
-                nombre="GENERAL",
-                defaults={"orden": 0}
-            )
+
 
     def __str__(self):
         return f"{self.cliente} - {self.numero}"
