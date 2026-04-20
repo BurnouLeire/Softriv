@@ -25,22 +25,40 @@ class TypeService(models.Model):
     class Meta:
         verbose_name = "Type of Service"
         verbose_name_plural = "Types of Services"
+        db_table = 'catalog_type_service'
     
     def __str__(self):
         return self.name
-
-class Magnitude (models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
-    active = models.BooleanField(default=True)
+class Units(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    symbol = models.CharField(max_length=10, unique=True)
     
+    class Meta:
+        verbose_name = "Unit"
+        verbose_name_plural = "Units"
 
     def __str__(self):
-        return self.nombre
+        return self.name
+
+
+class Magnitude (models.Model):
+    
+    name = models.CharField(max_length=100, unique=True)
+    unit = models.ManyToManyField(Units, related_name="magnitudes",null=True, blank=True)
+    active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Magnitude"
+        verbose_name_plural = "Magnitudes"
+
+    def __str__(self):
+        return self.name
 class MagnitudePrice (models.Model):
     magnitude = models.ForeignKey(Magnitude, on_delete=models.PROTECT)
+    unit =  models.ForeignKey(Units, on_delete=models.PROTECT, null=True, blank=True)
     tag = models.CharField(max_length=100)
-    range_min = models.CharField(max_length=100)
-    range_max = models.CharField(max_length=100)
+    range_min = models.DecimalField(max_digits=10, decimal_places=2)
+    range_max = models.DecimalField(max_digits=10, decimal_places=2)
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
     min_price = models.DecimalField(max_digits=10, decimal_places=2)
     max_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -50,26 +68,21 @@ class MagnitudePrice (models.Model):
     
     class Meta:
         # Aquí defines el nombre exacto de la tabla
+        verbose_name = "Magnitude Price"
+        verbose_name_plural = "Magnitude Prices"
         db_table = 'catalog_magnitude_price'
 
     def __str__(self):
-        return self.magnitude.nombre
+        return self.magnitude.name
     
-
-
-class Unidades(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
-    simbolo = models.CharField(max_length=10, unique=True)
-    
-
-    def __str__(self):
-        return self.nombre
-
-
 class Procedures(models.Model):
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=255)
     active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Procedure"
+        verbose_name_plural = "Procedures"
 
     def __str__(self):
         return self.code
@@ -91,6 +104,11 @@ class Instruments(models.Model):
    # magnitud = models.ForeignKey(Magnitude, on_delete=models.PROTECT, null=True, blank=True)
     code = models.CharField(max_length=50, blank=True)
     is_measurable=models.BooleanField(default=True)
+    alternative_name=models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "Instrument"
+        verbose_name_plural = "Instruments"
 
 
 
@@ -116,13 +134,12 @@ class InstrumentMagnitudes(models.Model):
 # CATÁLOGO PRINCIPAL
 # ─────────────────────────
 
-class Servicios(models.Model):
+class Services(models.Model):
     code = models.CharField(max_length=50, unique=True)
-    tipo_servicio = models.ForeignKey(TypeService, on_delete=models.PROTECT)
-    instrumento = models.ForeignKey(Instruments, on_delete=models.PROTECT, null=True, blank=True, related_name='servicios')
+    type_service = models.ForeignKey(TypeService, on_delete=models.PROTECT)
+    instrument = models.ForeignKey(Instruments, on_delete=models.PROTECT, null=True, blank=True, related_name='servicios')
     name = models.CharField(max_length=255, blank=True)
     precio_base = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    acreditado = models.BooleanField(default=False)
     active = models.BooleanField(default=True)
     observaciones_internas = models.TextField(blank=True)
     
@@ -136,10 +153,10 @@ class Servicios(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.name:
-            if self.instrumento:
-                self.name = f"{self.tipo_servicio.name} de {self.instrumento.name}"
+            if self.instrument:
+                self.name = f"{self.type_service.name} de {self.instrument.name}"
             else:
-                self.name = self.tipo_servicio.name
+                self.name = self.type_service.name
         super().save(*args, **kwargs)
     
     def __str__(self):

@@ -1,17 +1,23 @@
 from django.contrib import admin
 from .models import (
-    TypeService, Magnitude, Procedures,
-    Instruments, Servicios, MagnitudePrice, InstrumentMagnitudes, ProceduresMagnitudes
-    # VarianteServicio, PrecioVariante, DimensionVariante,
-    # TarifaPunto, TarifaRango
+    TypeService,
+    Magnitude,
+    Procedures,
+    Instruments,
+    Services,
+    MagnitudePrice,
+    InstrumentMagnitudes,
+    ProceduresMagnitudes,
+    Units
+   
 )
 
 class MagnitudePriceInline(admin.TabularInline):
     model = MagnitudePrice
     extra = 1
 
-class ServiciosInline(admin.TabularInline):
-    model = Servicios
+class ServicesInline(admin.TabularInline):
+    model = Services
     extra = 1
 class InstrumentMagnitudesInline(admin.TabularInline):
     model = InstrumentMagnitudes
@@ -32,6 +38,6 @@ class InstrumentsAdmin(admin.ModelAdmin):
     inlines = [InstrumentMagnitudesInline]
 
 admin.site.register(TypeService)
-admin.site.register(Servicios)
-# admin.site.register([, PrecioVariante, DimensionVariante])
+admin.site.register(Services)
+admin.site.register(Units)
 

@@ -6,39 +6,38 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import (
-    Servicios, 
-    #VarianteServicio, PrecioVariante,
-    #DimensionVariante, 
-    Magnitude, TypeService, Instruments, Procedures
+    Services, 
+    Magnitude,
+    TypeService, 
+    Instruments, 
+    Procedures
 )
 from .serializers import (
-    ServiciosSerializer,
-    ServicioWritableSerializer,
-    #VarianteSerializer,
-    #PrecioSerializer,
-    #DimensionSerializer,
+    ServicesSerializer,
+    ServiceWritableSerializer,
     MagnitudeSerializer,
     TypeServiceSerializer,
 )
 
 
-class ServiciosViewSet(viewsets.ModelViewSet):
-    queryset = Servicios.objects.all().prefetch_related(
-        'variantes__precios',
-        'variantes__dimensiones',
-        'magnitud',
-        'tipo_servicio',
-        'instrumento'
+class ServicesViewSet(viewsets.ModelViewSet):
+    queryset = Services.objects.all().prefetch_related(
+        'type_service',
+        'instrument__magnitudes__magnitude'
     )
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    search_fields = ['code', 'nombre', 'magnitud__nombre']
-    filterset_fields = ['magnitud', 'tipo_servicio', 'acreditado', 'activo']
-    ordering_fields = ['code', 'nombre', 'precio_min', 'precio_max']
+    search_fields = ['code', 'name', 'instrument__magnitudes__magnitude__nombre']
+    filterset_fields = {
+        'instrument__magnitudes__magnitude': ['exact'],
+        'type_service': ['exact'],
+        'active': ['exact'],
+    }
+    ordering_fields = ['code', 'name']
     
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
-            return ServicioWritableSerializer
-        return ServiciosSerializer
+            return ServiceWritableSerializer
+        return ServicesSerializer
     
     @action(detail=False, methods=['get'])
     def metadata(self, request):
@@ -48,15 +47,14 @@ class ServiciosViewSet(viewsets.ModelViewSet):
                 Magnitude.objects.filter(active=True), 
                 many=True
             ).data,
-            'tipos_servicio': TypeServiceSerializer(
+            'type_services': TypeServiceSerializer(
                 TypeService.objects.filter(active=True), 
                 many=True
             ).data,
-            'instrumentos': [
+            'instruments': [
                 {
                     'id': i.id, 
                     'name': i.name, 
-                    'magnitud_id': i.magnitud_id,
                     'code': i.code
                 }
                 for i in Instruments.objects.all()
@@ -65,69 +63,10 @@ class ServiciosViewSet(viewsets.ModelViewSet):
                 {'id': p.id, 'codigo': p.code, 'nombre': p.name}
                 for p in Procedures.objects.all()
             ],
-            'dimension_config': {
-                'TEMPERATURA Y HUMEDAD': {
-                    'required_dimensions': ['PUNTOS_TEMP'],
-                    'optional_dimensions': ['PUNTOS_HUM', 'ENTORNO', 'INMERSION'],
-                    'puntos_temp': {'min': 1, 'max': 10},
-                    'puntos_hum': {'min': 1, 'max': 10},
-                    'entorno_options': ['ESTUFA', 'AUTOCLAVE', 'BAÑO_MARIA', 'GENERAL'],
-                    'inmersion_options': ['TOTAL', 'PARCIAL']
-                },
-                'PRESIÓN': {
-                    'required_dimensions': [],
-                    'optional_dimensions': ['SECUENCIA'],
-                    'secuencia_options': ['B', 'C']
-                },
-                'MASA': {
-                    'required_dimensions': ['TIPO_INSTRUMENTO'],
-                    'optional_dimensions': ['RANGO_MASA', 'CLASE_PESO', 'VALOR_NOMINAL', 'CAPACIDAD'],
-                    'tipo_options': ['BALANZA', 'PESA', 'TOLVA', 'TERMOBALANZA'],
-                    'clase_options': ['E1', 'E2', 'F1', 'F2', 'M1', 'M2', 'M3']
-                },
-                'LONGITUD': {
-                    'required_dimensions': ['TIPO_INSTRUMENTO'],
-                    'optional_dimensions': [],
-                    'tipo_options': ['CINTA', 'CINTA_AFORO', 'PIE_DE_REY', 'FLEXOMETRO', 'MICROMETRO', 'RELOJ_COMPARADOR']
-                },
-                'OTRAS MAGNITUDES': {
-                    'required_dimensions': [],
-                    'optional_dimensions': ['PUNTOS_TEMP', 'PUNTOS_PH', 'PUNTOS_BRIX', 'PUNTOS_CONDUCTIVIDAD'],
-                }
-            }
+            
         })
-    
-    # @action(detail=True, methods=['get'])
-    # def variantes(self, request, pk=None):
-    #     """Obtiene todas las variantes de un servicio"""
-    #     servicio = self.get_object()
-    #     variantes = servicio.variantes.filter(activo=True)
-    #     serializer = VarianteSerializer(variantes, many=True)
-    #     return Response(serializer.data)
 
-
-# class VarianteServicioViewSet(viewsets.ModelViewSet):
-#     queryset = VarianteServicio.objects.filter(activo=True)
-#     serializer_class = VarianteSerializer
-#     filter_backends = [DjangoFilterBackend]
-#     filterset_fields = ['servicio', 'acreditado', 'activo']
-
-
-# class PrecioVarianteViewSet(viewsets.ModelViewSet):
-#     queryset = PrecioVariante.objects.filter(activo=True)
-#     serializer_class = PrecioSerializer
-#     filter_backends = [DjangoFilterBackend]
-#     filterset_fields = ['variante', 'activo']
-
-
-# class DimensionVarianteViewSet(viewsets.ModelViewSet):
-#     queryset = DimensionVariante.objects.all()
-#     serializer_class = DimensionSerializer
-#     filter_backends = [DjangoFilterBackend]
-#     filterset_fields = ['variante', 'tipo_dimension']
-
-
-class MagnitudViewSet(viewsets.ModelViewSet):
+class MagnitudeViewSet(viewsets.ModelViewSet):
     queryset = Magnitude.objects.filter(active=True)
     serializer_class = MagnitudeSerializer
 

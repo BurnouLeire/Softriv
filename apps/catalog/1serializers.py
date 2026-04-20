@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Servicios, VarianteServicio, PrecioVariante,
+    Services, VarianteServicio, PrecioVariante,
     DimensionVariante, Magnitud, TipoServicio
 )
 
@@ -38,7 +38,7 @@ class ServiciosSerializer(serializers.ModelSerializer):
     variants = VarianteSerializer(source="variantes", many=True, read_only=True)
 
     class Meta:
-        model = Servicios
+        model = Services
         fields = [
             'id',
             'code',

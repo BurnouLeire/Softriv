@@ -1,7 +1,7 @@
 # apps/sales/admin.py
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from .models import Quote, Items, GrupoCotizacion
+from .models import Quote, Items,  QuoteGroup
 
 User = get_user_model()
 
@@ -11,23 +11,22 @@ class ItemsInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(GrupoCotizacion)
-class GrupoCotizacionAdmin(admin.ModelAdmin):
+@admin.register(QuoteGroup)
+class QuoteGroupAdmin(admin.ModelAdmin):
     inlines = [ItemsInline]
 
 
-class GrupoInline(admin.TabularInline):
-    model = GrupoCotizacion
+class QuoteGroupInline(admin.TabularInline):
+    model = QuoteGroup
     extra = 1
 
 
 @admin.register(Quote)
 class QuoteAdmin(admin.ModelAdmin):
-    inlines = [GrupoInline]
+    inlines = [QuoteGroupInline]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'vendedor':
-            # Asumiendo que tienes un grupo "Vendedores" o un campo is_vendedor
             kwargs['queryset'] = User.objects.filter(groups__name='Vendedor')
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

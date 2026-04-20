@@ -1,6 +1,6 @@
 # apps/catalog/serializers/__init__.py
 from .base import (
-    ServiciosSerializer,
+    ServicesSerializer,
     # VarianteSerializer,
     # PrecioSerializer,
     # DimensionSerializer,
@@ -9,7 +9,7 @@ from .base import (
 )
 
 from .writable import (
-    ServicioWritableSerializer,
+    ServiceWritableSerializer,
     # VarianteWritableSerializer,
     # PrecioWritableSerializer,
     # DimensionWritableSerializer,
@@ -17,8 +17,8 @@ from .writable import (
 
 __all__ = [
     # Base (lectura)
-    'ServiciosSerializer',
+    'ServicesSerializer',
     'MagnitudeSerializer',
     'TypeServiceSerializer',
-    'ServicioWritableSerializer',
+    'ServiceWritableSerializer',
 ]

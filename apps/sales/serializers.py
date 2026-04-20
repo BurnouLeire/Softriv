@@ -1,6 +1,6 @@
 # apps/sales/serializers.py
 from rest_framework import serializers
-from .models import Quote, Items, GrupoCotizacion
+from .models import Quote, Items, QuoteGroup
 from django.db import transaction
 
 class ItemsSerializer(serializers.ModelSerializer):
@@ -131,7 +131,7 @@ class CotizacionCreateSerializer(serializers.ModelSerializer):
             )
 
             # 🔥 Crear grupo GENERAL
-            grupo_general = GrupoCotizacion.objects.create(
+            grupo_general = QuoteGroup.objects.create(
                 cotizacion=cotizacion,
                 nombre="GENERAL",
                 orden=0
