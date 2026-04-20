@@ -2,7 +2,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
-from apps.catalog.models import Services
+from apps.catalog.models import Services, MagnitudePrice
 from apps.customers.models import Branch
 from django.db import transaction
 
@@ -114,7 +114,7 @@ class QuoteGroup(models.Model):
 
     @property
     def total_items(self):
-        return sum(item.cantidad for item in self.items.all())
+        return sum(item.quantity for item in self.items.all())
 
 
 class Items(models.Model):
@@ -135,13 +135,6 @@ class Items(models.Model):
         on_delete=models.PROTECT,
     )
 
-    # Configuración específica (puntos, rangos, etc.)
-    configuration = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text="Configuración específica: puntos_temp, puntos_humedad, rango_masa, etc."
-    )
-
     quantity = models.PositiveSmallIntegerField(
         "Cantidad",
         default=1,
@@ -151,21 +144,10 @@ class Items(models.Model):
     unit_price = models.DecimalField(
         "Precio Unitario",
         max_digits=10,
-        decimal_places=2
+        decimal_places=2,
+        default=0,
     )
-
-    # Solo datos específicos del equipo del cliente (marca, modelo, serie)
-    # El instrumento_desc ya no es necesario porque está en el servicio
-    brand = models.CharField("Marca",max_length=100, blank=True)
-    model = models.CharField("Modelo",max_length=100, blank=True)
-    serial = models.CharField("Serie",max_length=100, blank=True)
-
-    # Notas adicionales
-    notes = models.TextField(
-        "Notas",
-        blank=True,
-        help_text="Notas adicionales, comentarios, referencia a fotos"
-    )
+   
     is_outsourced = models.BooleanField("¿Subcontratado?", default=False)
     external_provider = models.ForeignKey(
         'providers.Provider',
@@ -174,6 +156,13 @@ class Items(models.Model):
         blank=True,
         verbose_name="Enviar a (Lab Externo)"
 
+    )
+    is_accredited = models.BooleanField("¿Acreditado?", default=False)
+    # Notas adicionales
+    notes = models.TextField(
+        "Notas",
+        blank=True,
+        help_text="Notas adicionales, comentarios, referencia a fotos"
     )
 
     class Meta:
@@ -194,43 +183,46 @@ class Items(models.Model):
         """Obtiene el nombre del instrumento desde el servicio"""
         return self.service.instrument.nombre if self.service.instrument else "N/A"
 
-    def get_descripcion_completa(self):
-        """Genera una descripción legible de la configuración"""
-        base_desc = f"{self.service.type_service.nombre} de {self.service.instrument.nombre}"
 
-        if not self.configuration:
-            return base_desc
-
-        detalles = []
-        for key, value in self.configuration.items():
-            nombre_legible = key.replace('_', ' ').title()
-            detalles.append(f"{nombre_legible}: {value}")
-
-        config_text = ", ".join(detalles)
-        return f"{base_desc} ({config_text})"
 
     def __str__(self):
         return f"{self.group.quote} - {self.service}"
         
-    def save(self, *args, **kwargs):
-        if not self.group:
-            from apps.sales.models import QuoteGroup
-            self.group, _ = QuoteGroup.objects.get_or_create(nombre="GENERAL")
-        super().save(*args, **kwargs)
 class SubItem (models.Model):
-    item = models.ForeignKey(Items, on_delete=models.CASCADE, related_name='subitems')
-    service = models.ForeignKey(Services, on_delete=models.PROTECT)
-    configuration = models.JSONField(default=dict, blank=True)
-    quantity = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1)])
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    brand = models.CharField(max_length=100, blank=True)
-    model = models.CharField(max_length=100, blank=True)
-    serial = models.CharField(max_length=100, blank=True)
-    notes = models.TextField(blank=True)
+    item = models.ForeignKey(
+        Items, 
+        on_delete=models.CASCADE, 
+        related_name='subitems'
+    )
+    magnitude_price=models.ForeignKey(
+        MagnitudePrice, 
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="Precio de Magnitud"
+    )
+    quantity = models.PositiveSmallIntegerField(
+        "Cantidad",
+        default=1, 
+        validators=[MinValueValidator(1)]
+    )
+    unit_price = models.DecimalField(
+        "Precio por Punto", 
+        max_digits=10, 
+        decimal_places=2,
+        default=0,
+    )
+    technical_description = models.TextField(
+        "Descripción Técnica",
+        blank=True,
+        help_text="Descripción técnica del subitem"
+    )
     class Meta:
+        verbose_name = "SubItem de Cotización"
+        verbose_name_plural = "SubItems de Cotizaciones"
         indexes = [
             models.Index(fields=['item']),
-            models.Index(fields=['service']),
+            models.Index(fields=['magnitude_price']),
         ]
         verbose_name = "SubItem de Cotización"
         verbose_name_plural = "SubItems de Cotizaciones"
@@ -238,25 +230,9 @@ class SubItem (models.Model):
     def subtotal(self):
         """Calcula el subtotal del item"""
         return self.quantity * self.unit_price
-    @property
-    def instrument_name(self):
-        """Obtiene el nombre del instrumento desde el servicio"""
-        return self.service.instrument.name if self.service.instrument else "N/A"
-    def get_descripcion_completa(self):
-        """Genera una descripción legible de la configuración"""
-        base_desc = f"{self.service.type_service.nombre} de {self.service.instrument.name}"
-        if not self.configuration:
-            return base_desc
-        detalles = []
-        for key, value in self.configuration.items():
-            nombre_legible = key.replace('_', ' ').title()
-            detalles.append(f"{nombre_legible}: {value}")
-        config_text = ", ".join(detalles)
-        return f"{base_desc} ({config_text})"
-    def __str__(self):
-        return f"{self.item.group.quote} - {self.servicio}"
+
     def save(self, *args, **kwargs):
-        if not self.item:
-            from apps.sales.models import Items
-            self.item, _ = Items.objects.get_or_create(nombre="GENERAL")
+        # Almacenamos el precio del catálogo automáticamente si no se define
+        if not self.unit_price and self.magnitude_price:
+            self.unit_price = self.magnitude_price.base_price
         super().save(*args, **kwargs)

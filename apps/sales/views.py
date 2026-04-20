@@ -1,4 +1,7 @@
 # apps/sales/views.py
+from rest_framework.viewsets import ModelViewSet
+from IPython.core import logger
+from django.http import HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import APIView, action
 from rest_framework.response import Response
@@ -7,249 +10,285 @@ from django.db.models import Q
 from .services.services import crear_ot_desde_cotizacion
 from .services.pdf_service import PDFService, PDFGenerationError  # 👈 NUEVO
 
-from .models import Quote, Items
+from .models import Quote, Items, SubItem
 from .serializers import (
-    CotizacionSerializer,
-    CotizacionListSerializer,
-    CotizacionCreateSerializer,
+    QuoteSerializer,
+    QuoteListSerializer,
+    QuoteCreateSerializer,
     ItemsSerializer,
     ItemsCreateSerializer,
+    SubItemsSerializer,
 )
 
 
-class CotizacionViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gestionar cotizaciones.
-    """
+# class QuoteViewSet(viewsets.ModelViewSet):
+#     """
+#     ViewSet para gestionar cotizaciones.
+#     """
+
+#     def get_queryset(self):
+#         queryset = Quote.objects.prefetch_related(
+#             'group_items', 'customer', 'seller'
+#         )
+
+#         cliente_id = self.request.query_params.get('cliente_id')
+#         estado = self.request.query_params.get('estado')
+#         fecha_desde = self.request.query_params.get('fecha_desde')
+#         fecha_hasta = self.request.query_params.get('fecha_hasta')
+#         search = self.request.query_params.get('search')
+
+#         if cliente_id:
+#             queryset = queryset.filter(customer_id=cliente_id)
+
+#         if estado:
+#             queryset = queryset.filter(state=estado.upper())
+
+#         if fecha_desde:
+#             queryset = queryset.filter(date__gte=fecha_desde)
+
+#         if fecha_hasta:
+#             queryset = queryset.filter(date__lte=fecha_hasta)
+
+#         if search:
+#             queryset = queryset.filter(
+#                 Q(numero__icontains=search) |
+#                 Q(customer__nombre_completo__icontains=search) |
+#                 Q(codigo_empresa__icontains=search)
+#             )
+
+#         return queryset.order_by('-date', '-id')
+
+#     def get_serializer_class(self):
+#         if self.action == 'list':
+#             return QuoteListSerializer
+#         elif self.action == 'create':
+#             return QuoteCreateSerializer
+#         return QuoteSerializer
+
+class QuoteViewSet(ModelViewSet):
+    # Definimos el predeterminado
+    serializer_class = QuoteSerializer
 
     def get_queryset(self):
-        queryset = Quote.objects.prefetch_related(
-            'items', 'cliente', 'vendedor')
+        # Mantenemos tu optimización de base de datos
+        return Quote.objects.select_related(
+            'customer', 
+            'seller', 
+            'branch' # Agregué sucursal porque suele usarse en el encabezado
+        ).prefetch_related(
+            'groups__items__subitems',
+            'groups__items__service' # ¡Importante! Para ver qué servicio se vendió
+        ).order_by('-date')
 
-        # Filtros por query params
-        cliente_id = self.request.query_params.get('cliente_id')
-        estado = self.request.query_params.get('estado')
-        fecha_desde = self.request.query_params.get('fecha_desde')
-        fecha_hasta = self.request.query_params.get('fecha_hasta')
-        search = self.request.query_params.get('search')
 
-        if cliente_id:
-            queryset = queryset.filter(cliente_id=cliente_id)
 
-        if estado:
-            queryset = queryset.filter(estado=estado.upper())
+    # def create(self, request, *args, **kwargs):
+    #     """Crear una nueva cotización"""
+    #     serializer = self.get_serializer(
+    #         data=request.data,
+    #         context={'request': request}
+    #     )
+    #     serializer.is_valid(raise_exception=True)
+    #     cotizacion = serializer.save()
 
-        if fecha_desde:
-            queryset = queryset.filter(fecha__gte=fecha_desde)
+    #     output_serializer = QuoteSerializer(cotizacion)
+    #     return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
-        if fecha_hasta:
-            queryset = queryset.filter(fecha__lte=fecha_hasta)
+    # @action(detail=True, methods=['post'])
+    # def enviar(self, request, pk=None):
+    #     """Cambiar estado a ENVIADA"""
+    #     cotizacion = self.get_object()
 
-        if search:
-            queryset = queryset.filter(
-                Q(numero__icontains=search) |
-                Q(cliente__nombre_completo__icontains=search) |
-                Q(codigo_empresa__icontains=search)
-            )
+    #     if cotizacion.estado != Quote.Estado.BORRADOR:
+    #         return Response(
+    #             {'error': 'Solo se pueden enviar cotizaciones en estado BORRADOR'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
 
-        return queryset.order_by('-fecha', '-id')
+    #     cotizacion.estado = Quote.Estado.ENVIADA
+    #     cotizacion.save()
+    #     return Response(QuoteSerializer(cotizacion).data)
 
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return CotizacionListSerializer
-        elif self.action == 'create':
-            return CotizacionCreateSerializer
-        return CotizacionSerializer
+    # @action(detail=True, methods=['post'])
+    # def aprobar(self, request, pk=None):
+    #     """Cambiar estado a APROBADA"""
+    #     cotizacion = self.get_object()
 
-    def create(self, request, *args, **kwargs):
-        """Crear una nueva cotización"""
-        serializer = self.get_serializer(
-            data=request.data,
-            context={'request': request}
-        )
-        serializer.is_valid(raise_exception=True)
-        cotizacion = serializer.save()
+    #     if cotizacion.estado != Quote.Estado.ENVIADA:
+    #         return Response(
+    #             {'error': 'Solo se pueden aprobar cotizaciones enviadas'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
 
-        output_serializer = CotizacionSerializer(cotizacion)
-        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=['post'])
-    def enviar(self, request, pk=None):
-        """Cambiar estado a ENVIADA"""
-        cotizacion = self.get_object()
-
-        if cotizacion.estado != Quote.Estado.BORRADOR:
-            return Response(
-                {'error': 'Solo se pueden enviar cotizaciones en estado BORRADOR'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        cotizacion.estado = Quote.Estado.ENVIADA
-        cotizacion.save()
-        return Response(CotizacionSerializer(cotizacion).data)
-
-    @action(detail=True, methods=['post'])
-    def aprobar(self, request, pk=None):
-        """Cambiar estado a APROBADA"""
-        cotizacion = self.get_object()
-
-        if cotizacion.estado != Quote.Estado.ENVIADA:
-            return Response(
-                {'error': 'Solo se pueden aprobar cotizaciones enviadas'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        cotizacion.estado = Quote.Estado.APROBADA
-        cotizacion.save()
-        order = crear_ot_desde_cotizacion(cotizacion)
-        return Response({
-            "cotizacion": CotizacionSerializer(cotizacion).data,
-            "order_id": order.id
-        }, status=status.HTTP_200_OK)
+    #     cotizacion.estado = Quote.Estado.APROBADA
+    #     cotizacion.save()
+    #     order = crear_ot_desde_cotizacion(cotizacion)
+    #     return Response({
+    #         "cotizacion": QuoteSerializer(cotizacion).data,
+    #         "order_id": order.id
+    #     }, status=status.HTTP_200_OK)
 
     
     
 
-    @action(detail=True, methods=['post'])
-    def rechazar(self, request, pk=None):
-        """Cambiar estado a RECHAZADA"""
-        cotizacion = self.get_object()
-        cotizacion.estado = Quote.Estado.RECHAZADA
-        cotizacion.save()
-        return Response(CotizacionSerializer(cotizacion).data)
-    @action(detail=True, methods=['get'])
-    def pdf(self, request, pk=None):
-        """
-        Generar PDF de la cotización.
+    # @action(detail=True, methods=['post'])
+    # def rechazar(self, request, pk=None):
+    #     """Cambiar estado a RECHAZADA"""
+    #     cotizacion = self.get_object()
+    #     cotizacion.estado = Quote.Estado.RECHAZADA
+    #     cotizacion.save()
+    #     return Response(QuoteSerializer(cotizacion).data)
+    # #@action(detail=True, methods=['get'])
+    # def pdf(self, request, pk=None):
+    #     """
+    #     Generar PDF de la cotización.
         
-        GET /api/cotizaciones/{id}/pdf/
-        Query params opcionales:
-            - download=true → Forzar descarga (attachment)
-            - preview=true → Vista previa en navegador
-        """
-        from .services.pdf_service import CotizacionPDFGenerator, PDFGenerationError
+    #     GET /api/cotizaciones/{id}/pdf/
+    #     Query params opcionales:
+    #         - download=true → Forzar descarga (attachment)
+    #         - preview=true → Vista previa en navegador
+    #     """
+    #     from .services.pdf_service import CotizacionPDFGenerator, PDFGenerationError
         
-        cotizacion = self.get_object()
+    #     cotizacion = self.get_object()
         
-        # Verificar que la cotización tenga datos mínimos
-        if not cotizacion.cliente:
-            return Response(
-                {'error': 'La cotización no tiene un cliente asignado'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+    #     # Verificar que la cotización tenga datos mínimos
+    #     if not cotizacion.cliente:
+    #         return Response(
+    #             {'error': 'La cotización no tiene un cliente asignado'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
         
-        try:
-            # Usar el generador específico
-            pdf_generator = CotizacionPDFGenerator(cotizacion)
-            pdf_bytes = pdf_generator.generate(output_type='binary')
+    #     try:
+    #         # Usar el generador específico
+    #         pdf_generator = CotizacionPDFGenerator(cotizacion)
+    #         pdf_bytes = pdf_generator.generate(output_type='binary')
             
-            # Determinar si es descarga o vista previa
-            download = request.query_params.get('download', 'false').lower() == 'true'
-            preview = request.query_params.get('preview', 'false').lower() == 'true'
+    #         # Determinar si es descarga o vista previa
+    #         download = request.query_params.get('download', 'false').lower() == 'true'
+    #         preview = request.query_params.get('preview', 'false').lower() == 'true'
             
-            if preview:
-                disposition = 'inline'
-            elif download:
-                disposition = 'attachment'
-            else:
-                disposition = 'inline'  # Por defecto, vista previa
+    #         if preview:
+    #             disposition = 'inline'
+    #         elif download:
+    #             disposition = 'attachment'
+    #         else:
+    #             disposition = 'inline'  # Por defecto, vista previa
             
-            response = HttpResponse(pdf_bytes, content_type='application/pdf')
-            response['Content-Disposition'] = f'{disposition}; filename="cotizacion_{cotizacion.numero}.pdf"'
+    #         response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    #         response['Content-Disposition'] = f'{disposition}; filename="cotizacion_{cotizacion.numero}.pdf"'
             
-            return response
+    #         return response
             
-        except PDFGenerationError as e:
-            return Response(
-                {'error': f'Error generando PDF: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        except Exception as e:
-            logger.error(f"Error inesperado generando PDF para cotización {cotizacion.id}: {str(e)}")
-            return Response(
-                {'error': f'Error inesperado: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-    @action(detail=True, methods=['get'])
-    def generar_pdf(self, request, pk=None):
-        """
-        Generar PDF de una cotización existente.
+    #     except PDFGenerationError as e:
+    #         return Response(
+    #             {'error': f'Error generando PDF: {str(e)}'},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #         )
+    #     except Exception as e:
+    #         logger.error(f"Error inesperado generando PDF para cotización {cotizacion.id}: {str(e)}")
+    #         return Response(
+    #             {'error': f'Error inesperado: {str(e)}'},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #         )
+    # @action(detail=True, methods=['get'])
+    # def generar_pdf(self, request, pk=None):
+    #     """
+    #     Generar PDF de una cotización existente.
         
-        GET /api/sales/cotizaciones/{id}/generar_pdf/
-        """
-        from .services.pdf_service import CotizacionPDFGenerator, PDFGenerationError
+    #     GET /api/sales/cotizaciones/{id}/generar_pdf/
+    #     """
+    #     from .services.pdf_service import CotizacionPDFGenerator, PDFGenerationError
         
-        cotizacion = self.get_object()
+    #     cotizacion = self.get_object()
         
-        try:
-            # Generar PDF desde el modelo
-            pdf_generator = CotizacionPDFGenerator(cotizacion)
-            pdf_bytes = pdf_generator.generate(output_type='binary')
+    #     try:
+    #         # Generar PDF desde el modelo
+    #         pdf_generator = CotizacionPDFGenerator(cotizacion)
+    #         pdf_bytes = pdf_generator.generate(output_type='binary')
             
-            # Determinar si es descarga o vista previa
-            download = request.query_params.get('download', 'false').lower() == 'true'
+    #         # Determinar si es descarga o vista previa
+    #         download = request.query_params.get('download', 'false').lower() == 'true'
             
-            if download:
-                disposition = 'attachment'
-                filename = f"cotizacion_{cotizacion.numero}_{timezone.now().strftime('%Y%m%d')}.pdf"
-            else:
-                disposition = 'inline'
-                filename = f"cotizacion_{cotizacion.numero}.pdf"
+    #         if download:
+    #             disposition = 'attachment'
+    #             filename = f"cotizacion_{cotizacion.numero}_{timezone.now().strftime('%Y%m%d')}.pdf"
+    #         else:
+    #             disposition = 'inline'
+    #             filename = f"cotizacion_{cotizacion.numero}.pdf"
             
-            response = HttpResponse(pdf_bytes, content_type='application/pdf')
-            response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+    #         response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    #         response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
             
-            return response
+    #         return response
             
-        except PDFGenerationError as e:
-            return Response(
-                {'error': f'Error generando PDF: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        except Exception as e:
-            return Response(
-                {'error': f'Error inesperado: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    #     except PDFGenerationError as e:
+    #         return Response(
+    #             {'error': f'Error generando PDF: {str(e)}'},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #         )
+    #     except Exception as e:
+    #         return Response(
+    #             {'error': f'Error inesperado: {str(e)}'},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #         )
     
 
 
-class ItemsViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gestionar items de cotización
-    """
+# class ItemsViewSet(viewsets.ModelViewSet):
+#     """
+#     ViewSet para gestionar items de cotización
+#     """
+#     serializer_class = ItemsSerializer
+
+#     def get_queryset(self):
+#         cotizacion_id = self.kwargs.get('cotizacion_pk')
+#         return Items.objects.filter(cotizacion_id=cotizacion_id)
+
+#     def get_serializer_class(self):
+#         if self.action in ['create', 'update', 'partial_update']:
+#             return ItemsCreateSerializer
+#         return ItemsSerializer
+
+#     def create(self, request, cotizacion_pk=None):
+#         """Agregar un item a una cotización existente"""
+#         cotizacion = get_object_or_404(
+#             Quote,
+#             id=cotizacion_pk,
+#             estado=Quote.Estado.BORRADOR
+#         )
+
+#         serializer = ItemsCreateSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+
+#         item = Items.objects.create(
+#             cotizacion=cotizacion,
+#             **serializer.validated_data
+#         )
+
+#         return Response(
+#             ItemsSerializer(item).data,
+#             status=status.HTTP_201_CREATED
+#         )
+        
+class ItemsViewSet(ModelViewSet):
     serializer_class = ItemsSerializer
 
     def get_queryset(self):
-        cotizacion_id = self.kwargs.get('cotizacion_pk')
-        return Items.objects.filter(cotizacion_id=cotizacion_id)
+        quote_id = self.request.query_params.get('quote_id')
 
-    def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return ItemsCreateSerializer
-        return ItemsSerializer
-
-    def create(self, request, cotizacion_pk=None):
-        """Agregar un item a una cotización existente"""
-        cotizacion = get_object_or_404(
-            Quote,
-            id=cotizacion_pk,
-            estado=Quote.Estado.BORRADOR
+        queryset = Items.objects.select_related(
+            'group',
+            'group__quote',
+            'service'
+        ).prefetch_related(
+            'subitems'
         )
 
-        serializer = ItemsCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if quote_id:
+            queryset = queryset.filter(group__quote_id=quote_id)
 
-        item = Items.objects.create(
-            cotizacion=cotizacion,
-            **serializer.validated_data
-        )
-
-        return Response(
-            ItemsSerializer(item).data,
-            status=status.HTTP_201_CREATED
-        )
-        
+        return queryset
 
 
 
@@ -317,3 +356,30 @@ class GenerarPDFCotizacionView(APIView):
                 {'error': f'Error inesperado: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class SubItemViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar subitems de cotización.
+    """
+    queryset = SubItem.objects.all()
+    serializer_class = SubItemsSerializer
+    
+    def get_queryset(self):
+        """Filtrar por item_id si se proporciona"""
+        queryset = super().get_queryset()
+        item_id = self.request.query_params.get('item_id')
+        if item_id:
+            queryset = queryset.filter(item_id=item_id)
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Calcular subtotal automáticamente al crear"""
+        item = serializer.save()
+        item.calcular_subtotal()
+        item.save()
+    
+    def perform_update(self, serializer):
+        """Recalcular subtotal al actualizar"""
+        item = serializer.save()
+        item.calcular_subtotal()
+        item.save()

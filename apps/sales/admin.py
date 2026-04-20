@@ -1,10 +1,14 @@
 # apps/sales/admin.py
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from .models import Quote, Items,  QuoteGroup
+from .models import Quote, Items,  QuoteGroup, SubItem
 
 User = get_user_model()
 
+
+class SubItemInline(admin.TabularInline):
+    model = SubItem
+    extra = 1
 
 class ItemsInline(admin.TabularInline):
     model = Items
@@ -35,4 +39,5 @@ class QuoteAdmin(admin.ModelAdmin):
 # # Ocultar GrupoCotizacion del menú
 # admin.site.register(GrupoCotizacion)
 admin.site.register(Items)
+admin.site.register(SubItem)
 # admin.site._registry[GrupoCotizacion].has_module_permission = lambda request: False
