@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
-
+from apps.catalog.models import Instruments
 
 class Customer(models.Model):
 
@@ -249,3 +249,20 @@ class Phone(models.Model):
 
     def __str__(self):
         return f"{self.numero} ({self.contact.nombre})"
+
+class Equipment(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='equipments')
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='branch_equipments')
+    instrument = models.ForeignKey(Instruments, on_delete=models.SET_NULL, null=True, blank=True, related_name='equipments')
+    name = models.CharField("Nombre", max_length=150)
+    description = models.TextField("Descripción", blank=True)
+    serial_number = models.CharField("Número de serie", max_length=100, blank=True)
+    model = models.CharField("Modelo", max_length=100, blank=True)
+
+    class Meta:
+        verbose_name = "Equipo"
+        verbose_name_plural = "Equipos"
+
+    def __str__(self):
+        return f"{self.name} - {self.customer.nombre_completo}"
+    

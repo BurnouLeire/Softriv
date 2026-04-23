@@ -101,3 +101,29 @@ class WorkOrderItem(models.Model):
         verbose_name = "Ítem de Orden"
         verbose_name_plural = "Ítems de Orden"
         db_table = "operations_work_order_items"
+
+
+class OutsourcingRequest(models.Model):
+    """Solicitud de Servicio para laboratorios externos"""
+    # Se conecta al ítem de la OT que Ventas marcó como subcontratado
+    work_order_item = models.OneToOneField(
+        'WorkOrderItem', 
+        on_delete=models.CASCADE,
+        related_name='outsourcing_request'
+    )
+    
+    # Datos que llena Calidad
+    provider = models.ForeignKey('providers.Provider', on_delete=models.PROTECT)
+    request_date = models.DateField(auto_now_add=True)
+    expected_return_date = models.DateField("Fecha estimada de retorno", null=True, blank=True)
+    
+    # Seguimiento de logística
+    tracking_number = models.CharField("Guía de envío", max_length=100, blank=True)
+    status = models.CharField(
+        max_length=20, 
+        choices=[('SENT', 'Enviado'), ('RECEIVED', 'Recibido'), ('COMPLETED', 'Validado')],
+        default='SENT'
+    )
+
+    # Documentación técnica
+    service_request_pdf = models.FileField(upload_to='requests/pdfs/', null=True, blank=True)
