@@ -3,7 +3,7 @@ from .models import (
     TypeService,
     Magnitude,
     Procedures,
-    Instruments,
+    TypeInstruments,
     Services,
     MagnitudePrice,
     InstrumentMagnitudes,
@@ -33,7 +33,7 @@ class MagnitudeAdmin(admin.ModelAdmin):
 class ProceduresAdmin(admin.ModelAdmin):
     inlines = [ProceduresMagnitudesInline]
 
-@admin.register(Instruments)
+@admin.register(TypeInstruments)
 class InstrumentsAdmin(admin.ModelAdmin):
     inlines = [InstrumentMagnitudesInline]
 

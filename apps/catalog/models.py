@@ -99,7 +99,7 @@ class ProceduresMagnitudes(models.Model):
         return f"{self.procedure} - {self.magnitude}"
 
 
-class Instruments(models.Model):
+class TypeInstruments(models.Model):
     name = models.CharField(max_length=255)
    # magnitud = models.ForeignKey(Magnitude, on_delete=models.PROTECT, null=True, blank=True)
     code = models.CharField(max_length=50, blank=True)
@@ -107,8 +107,9 @@ class Instruments(models.Model):
     alternative_name=models.CharField(max_length=255, blank=True)
 
     class Meta:
-        verbose_name = "Instrument"
-        verbose_name_plural = "Instruments"
+        db_table = 'catalog_type_instruments'
+        verbose_name = "Type of Instrument"
+        verbose_name_plural = "Types of Instruments"
 
 
 
@@ -117,7 +118,7 @@ class Instruments(models.Model):
 
 class InstrumentMagnitudes(models.Model):
     """Relaciona un INSTRUMENTO con las MAGNITUDES que puede MEDIR"""
-    instrument = models.ForeignKey(Instruments, on_delete=models.CASCADE, related_name='magnitudes')
+    instrument = models.ForeignKey(TypeInstruments, on_delete=models.CASCADE, related_name='magnitudes')
     magnitude = models.ForeignKey(Magnitude, on_delete=models.CASCADE, null=True, blank=True)
     order = models.IntegerField(default=1)  # Para saber si es parámetro 1, 2, 3...
     obligatory = models.BooleanField(default=False)  # Si siempre se debe medir
@@ -137,7 +138,7 @@ class InstrumentMagnitudes(models.Model):
 class Services(models.Model):
     code = models.CharField(max_length=50, unique=True)
     type_service = models.ForeignKey(TypeService, on_delete=models.PROTECT)
-    instrument = models.ForeignKey(Instruments, on_delete=models.PROTECT, null=True, blank=True, related_name='servicios')
+    instrument = models.ForeignKey(TypeInstruments, on_delete=models.PROTECT, null=True, blank=True, related_name='servicios')
     name = models.CharField(max_length=255, blank=True)
     precio_base = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     active = models.BooleanField(default=True)

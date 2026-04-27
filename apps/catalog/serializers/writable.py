@@ -1,7 +1,7 @@
 # apps/catalog/serializers/writable.py
 from rest_framework import serializers
 from ..models import (
-    Services, Magnitude, TypeService, Instruments, Procedures,
+    Services, Magnitude, TypeService, TypeInstruments, Procedures,
 )
 
 class ServiceWritableSerializer(serializers.ModelSerializer):
@@ -12,7 +12,7 @@ class ServiceWritableSerializer(serializers.ModelSerializer):
     )
     
     instrument_id = serializers.PrimaryKeyRelatedField(
-        queryset=Instruments.objects.all(),
+        queryset=TypeInstruments.objects.all(),
         source='instrument', # Coincide con models.Services.instrument
         required=False,
         allow_null=True

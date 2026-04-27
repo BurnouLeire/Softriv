@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
-from apps.catalog.models import Instruments
+from apps.catalog.models import TypeInstruments
 
 class Customer(models.Model):
 
@@ -253,7 +253,7 @@ class Phone(models.Model):
 class Equipment(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='equipments')
     branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='branch_equipments')
-    instrument = models.ForeignKey(Instruments, on_delete=models.SET_NULL, null=True, blank=True, related_name='equipments')
+    instrument = models.ForeignKey(TypeInstruments, on_delete=models.SET_NULL, null=True, blank=True, related_name='equipments')
     name = models.CharField("Nombre", max_length=150)
     description = models.TextField("Descripción", blank=True)
     serial_number = models.CharField("Número de serie", max_length=100, blank=True)

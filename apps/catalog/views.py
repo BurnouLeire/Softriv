@@ -9,7 +9,7 @@ from .models import (
     Services, 
     Magnitude,
     TypeService, 
-    Instruments, 
+    TypeInstruments, 
     Procedures
 )
 from .serializers import (
@@ -57,7 +57,7 @@ class ServicesViewSet(viewsets.ModelViewSet):
                     'name': i.name, 
                     'code': i.code
                 }
-                for i in Instruments.objects.all()
+                for i in TypeInstruments.objects.all()
             ],
             'procedimientos': [
                 {'id': p.id, 'codigo': p.code, 'nombre': p.name}
