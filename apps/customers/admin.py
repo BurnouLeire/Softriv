@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, Branch, Contact, Phone
+from .models import Customer, Branch, Contact, Phone, Equipment
 from apps.users.models import User
 from apps.users.constants import Roles
 
@@ -30,3 +30,7 @@ class CustomerAdmin(admin.ModelAdmin):
 class ContactAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'customer', 'email')
     inlines = [PhoneInline]
+
+@admin.register(Equipment)
+class EquipmentAdmin(admin.ModelAdmin):
+    list_display = ('internal_code', 'customer', 'asset')

@@ -251,13 +251,24 @@ class Phone(models.Model):
         return f"{self.numero} ({self.contact.nombre})"
 
 class Equipment(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='equipments')
-    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='branch_equipments')
-    instrument = models.ForeignKey(TypeInstruments, on_delete=models.SET_NULL, null=True, blank=True, related_name='equipments')
-    name = models.CharField("Nombre", max_length=150)
-    description = models.TextField("Descripción", blank=True)
-    serial_number = models.CharField("Número de serie", max_length=100, blank=True)
-    model = models.CharField("Modelo", max_length=100, blank=True)
+    asset = models.ForeignKey(
+        'assets.Asset',
+        on_delete=models.CASCADE,
+        related_name='equipments',
+        null=True,
+        blank=True)
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name='equipments')
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='branch_equipments')
+    internal_code= models.CharField("Código interno", max_length=50, blank=True)
+
 
     class Meta:
         verbose_name = "Equipo"

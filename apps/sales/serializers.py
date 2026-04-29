@@ -191,3 +191,44 @@ class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = ['id', 'nombre_completo']
+
+class ItemsCreateUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer para crear/actualizar items que maneja ambos casos:
+    - Item SIMPLE: solo envías unit_price
+    - Item COMPUESTO: envías subitems y el precio se calcula solo
+    """
+    subitems = SubItemsSerializer(many=True, required=False)
+    
+    class Meta:
+        model = Items
+        fields = [
+            'id', 'group', 'service', 'quantity', 'unit_price',
+            'is_outsourced', 'external_provider', 'is_accredited',
+            'notes', 'subitems'
+        ]
+    
+    def create(self, validated_data):
+        subitems_data = validated_data.pop('subitems', [])
+        
+        with transaction.atomic():
+            # Crear el item
+            item = Items.objects.create(**validated_data)
+            
+            # Si hay subitems, crearlos
+            if subitems_data:
+                total_subitems = 0
+                for subitem_data in subitems_data:
+                    # Asegurar que no exceda la cantidad del item
+                    subitem_data['quantity'] = min(
+                        subitem_data.get('quantity', 1),
+                        item.quantity
+                    )
+                    subitem = SubItem.objects.create(item=item, **subitem_data)
+                    total_subitems += subitem.subtotal
+                
+                # Actualizar el precio del item con la suma real
+                item.unit_price = total_subitems
+                item.save(update_fields=['unit_price'])
+            
+            return item

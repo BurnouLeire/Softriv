@@ -1,4 +1,7 @@
 # apps/sales/views.py
+from apps.sales.serializers import ItemsCreateUpdateSerializer
+from apps.sales.serializers import QuoteGroupSerializer
+from apps.sales.models import QuoteGroup
 from rest_framework.viewsets import ModelViewSet
 from IPython.core import logger
 from django.http import HttpResponse
@@ -271,24 +274,55 @@ class QuoteViewSet(ModelViewSet):
 #             status=status.HTTP_201_CREATED
 #         )
         
+# class ItemsViewSet(ModelViewSet):
+#     serializer_class = ItemsSerializer
+
+#     def get_queryset(self):
+#         quote_id = self.request.query_params.get('quote_id')
+
+#         queryset = Items.objects.select_related(
+#             'group',
+#             'group__quote',
+#             'service'
+#         ).prefetch_related(
+#             'subitems'
+#         )
+
+#         if quote_id:
+#             queryset = queryset.filter(group__quote_id=quote_id)
+
+#         return queryset
 class ItemsViewSet(ModelViewSet):
-    serializer_class = ItemsSerializer
-
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ItemsCreateUpdateSerializer
+        return ItemsSerializer
+    
     def get_queryset(self):
-        quote_id = self.request.query_params.get('quote_id')
-
         queryset = Items.objects.select_related(
-            'group',
-            'group__quote',
-            'service'
-        ).prefetch_related(
-            'subitems'
-        )
-
+            'group__quote', 'service'
+        ).prefetch_related('subitems')
+        
+        # Filtrar por grupo si viene en la URL anidada
+        group_id = self.kwargs.get('grupo_pk')  # Nota: 'grupo' + '_pk'
+        if group_id:
+            queryset = queryset.filter(group_id=group_id)
+        
+        # También permitir filtro por query param
+        quote_id = self.request.query_params.get('quote_id')
         if quote_id:
             queryset = queryset.filter(group__quote_id=quote_id)
-
+            
         return queryset
+    
+    def perform_create(self, serializer):
+        # Si viene de URL anidada, obtener el grupo
+        group_id = self.kwargs.get('grupo_pk')
+        if group_id:
+            group = get_object_or_404(QuoteGroup, id=group_id)
+            serializer.save(group=group)
+        else:
+            serializer.save()
 
 
 
@@ -357,29 +391,51 @@ class GenerarPDFCotizacionView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class SubItemViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gestionar subitems de cotización.
-    """
-    queryset = SubItem.objects.all()
+class SubItemViewSet(ModelViewSet):
     serializer_class = SubItemsSerializer
     
     def get_queryset(self):
-        """Filtrar por item_id si se proporciona"""
-        queryset = super().get_queryset()
-        item_id = self.request.query_params.get('item_id')
+        queryset = SubItem.objects.all()
+        
+        # Filtrar por item si viene en URL anidada
+        item_id = self.kwargs.get('item_pk')  # Nota: 'item' + '_pk'
         if item_id:
             queryset = queryset.filter(item_id=item_id)
+        
+        # También query param
+        item_id_param = self.request.query_params.get('item_id')
+        if item_id_param:
+            queryset = queryset.filter(item_id=item_id_param)
+            
         return queryset
     
     def perform_create(self, serializer):
-        """Calcular subtotal automáticamente al crear"""
-        item = serializer.save()
-        item.calcular_subtotal()
-        item.save()
+        item_id = self.kwargs.get('item_pk')
+        if item_id:
+            item = get_object_or_404(Items, id=item_id)
+            serializer.save(item=item)
+        else:
+            serializer.save()
+
+class QuoteGroupViewSet(ModelViewSet):
+    serializer_class = QuoteGroupSerializer
     
-    def perform_update(self, serializer):
-        """Recalcular subtotal al actualizar"""
-        item = serializer.save()
-        item.calcular_subtotal()
-        item.save()
+    def get_queryset(self):
+        # Obtener el quote_id de la URL anidada
+        quote_id = self.kwargs.get('cotizacion_pk')  # Nota: 'cotizacion' + '_pk'
+        if quote_id:
+            return QuoteGroup.objects.filter(
+                quote_id=quote_id
+            ).prefetch_related('items__subitems').order_by('order')
+        return QuoteGroup.objects.none()
+    
+    def perform_create(self, serializer):
+        quote_id = self.kwargs.get('cotizacion_pk')
+        quote = get_object_or_404(Quote, id=quote_id)
+        
+        # Calcular siguiente orden
+        last_order = QuoteGroup.objects.filter(quote=quote).aggregate(
+            max_order=models.Max('order')
+        )['max_order'] or 0
+        
+        serializer.save(quote=quote, order=last_order + 1)

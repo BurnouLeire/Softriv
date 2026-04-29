@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'apps.work_orders',
     'storages',
+    'apps.assets',  
 
 
 ]

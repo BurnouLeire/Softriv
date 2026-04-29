@@ -115,7 +115,14 @@ class QuoteGroup(models.Model):
     @property
     def total_items(self):
         return sum(item.quantity for item in self.items.all())
-
+    class Meta:
+        db_table = 'sales_quote_group'
+        indexes = [
+            models.Index(fields=['quote']),
+            models.Index(fields=['name']),
+        ]
+        verbose_name = "Grupo de Cotización"
+        verbose_name_plural = "Grupos de Cotizaciones"
 
 class Items(models.Model):
     """
@@ -175,7 +182,17 @@ class Items(models.Model):
 
     @property
     def subtotal(self):
-        """Calcula el subtotal del item"""
+        """
+        Calcula el subtotal inteligentemente:
+        - Si tiene subitems: suma de todos los subitems
+        - Si no tiene: quantity × unit_price
+        """
+        if self.subitems.exists():
+            total = sum(
+                (subitem.quantity * subitem.unit_price) 
+                for subitem in self.subitems.all()
+            )
+            return total
         return self.quantity * self.unit_price
 
     @property
@@ -232,7 +249,19 @@ class SubItem (models.Model):
         return self.quantity * self.unit_price
 
     def save(self, *args, **kwargs):
-        # Almacenamos el precio del catálogo automáticamente si no se define
+        # Asignar precio del catálogo si no se define
         if not self.unit_price and self.magnitude_price:
             self.unit_price = self.magnitude_price.base_price
+        
         super().save(*args, **kwargs)
+        
+        # Actualizar el unit_price del Item padre
+        # para mantener consistencia visual
+        if self.item and self.item.subitems.exists():
+            total = sum(
+                (sub.quantity * sub.unit_price) 
+                for sub in self.item.subitems.all()
+            )
+            Items.objects.filter(id=self.item.id).update(unit_price=total)
+    def __str__(self):
+        return f"{self.item.group.quote} - {self.magnitude_price}"
