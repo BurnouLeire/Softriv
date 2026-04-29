@@ -275,5 +275,5 @@ class Equipment(models.Model):
         verbose_name_plural = "Equipos"
 
     def __str__(self):
-        return f"{self.name} - {self.customer.nombre_completo}"
+        return f"{self.asset.name} - {self.customer.nombre_completo}"
     

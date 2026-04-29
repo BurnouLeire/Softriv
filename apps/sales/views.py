@@ -9,7 +9,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import APIView, action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db import models
+from django.db.models import Q, Max
 from .services.services import crear_ot_desde_cotizacion
 from .services.pdf_service import PDFService, PDFGenerationError  # 👈 NUEVO
 

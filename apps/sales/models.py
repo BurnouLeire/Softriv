@@ -121,8 +121,8 @@ class QuoteGroup(models.Model):
             models.Index(fields=['quote']),
             models.Index(fields=['name']),
         ]
-        verbose_name = "Grupo de Cotización"
-        verbose_name_plural = "Grupos de Cotizaciones"
+        verbose_name = "Grupo de item"
+        verbose_name_plural = "Grupos de items"
 
 class Items(models.Model):
     """
@@ -153,6 +153,7 @@ class Items(models.Model):
         max_digits=10,
         decimal_places=2,
         default=0,
+        blank=True, null=True
     )
    
     is_outsourced = models.BooleanField("¿Subcontratado?", default=False)
@@ -173,26 +174,30 @@ class Items(models.Model):
     )
 
     class Meta:
+
         indexes = [
             models.Index(fields=['group']),
             models.Index(fields=['service']),
         ]
-        verbose_name = "Item of Quote"
-        verbose_name_plural = "Items of Quotes"
+        verbose_name = "Item del grupo"
+        verbose_name_plural = "Items de grupos"
 
     @property
     def subtotal(self):
         """
-        Calcula el subtotal inteligentemente:
-        - Si tiene subitems: suma de todos los subitems
-        - Si no tiene: quantity × unit_price
+        Calcula subtotal:
+        - Si tiene subitems:
+            (suma de subitems) × cantidad del item
+        - Si no tiene:
+            quantity × unit_price
         """
         if self.subitems.exists():
-            total = sum(
-                (subitem.quantity * subitem.unit_price) 
+            total_subitems = sum(
+                subitem.quantity * subitem.unit_price
                 for subitem in self.subitems.all()
             )
-            return total
+            return total_subitems * self.quantity
+
         return self.quantity * self.unit_price
 
     @property
@@ -203,31 +208,41 @@ class Items(models.Model):
 
 
     def __str__(self):
-        return f"{self.group.quote} - {self.service}"
+        return f"{self.group.name} "     
+
         
+          
 class SubItem (models.Model):
     item = models.ForeignKey(
         Items, 
         on_delete=models.CASCADE, 
         related_name='subitems'
     )
-    magnitude_price=models.ForeignKey(
-        MagnitudePrice, 
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        verbose_name="Precio de Magnitud"
-    )
+
     quantity = models.PositiveSmallIntegerField(
         "Cantidad",
         default=1, 
         validators=[MinValueValidator(1)]
     )
     unit_price = models.DecimalField(
-        "Precio por Punto", 
+        "Precio unitario", 
         max_digits=10, 
         decimal_places=2,
         default=0,
+    )
+    asset = models.ForeignKey(
+        'assets.asset',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="Instrumento"
+    )
+    magnitude_price = models.ForeignKey(
+        MagnitudePrice,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="Tarifa de Magnitud"
     )
     technical_description = models.TextField(
         "Descripción Técnica",
@@ -235,33 +250,37 @@ class SubItem (models.Model):
         help_text="Descripción técnica del subitem"
     )
     class Meta:
-        verbose_name = "SubItem de Cotización"
-        verbose_name_plural = "SubItems de Cotizaciones"
+        verbose_name = "SubItem"
+        verbose_name_plural = "SubItems"
         indexes = [
             models.Index(fields=['item']),
+            models.Index(fields=['asset']),
             models.Index(fields=['magnitude_price']),
         ]
-        verbose_name = "SubItem de Cotización"
-        verbose_name_plural = "SubItems de Cotizaciones"
+
     @property
     def subtotal(self):
-        """Calcula el subtotal del item"""
         return self.quantity * self.unit_price
-
+    
     def save(self, *args, **kwargs):
-        # Asignar precio del catálogo si no se define
+        # Si no puso precio, tomar del magnitude_price
         if not self.unit_price and self.magnitude_price:
             self.unit_price = self.magnitude_price.base_price
         
         super().save(*args, **kwargs)
         
-        # Actualizar el unit_price del Item padre
-        # para mantener consistencia visual
         if self.item and self.item.subitems.exists():
-            total = sum(
-                (sub.quantity * sub.unit_price) 
+            total_unitario = sum(
+                sub.quantity * sub.unit_price
                 for sub in self.item.subitems.all()
             )
-            Items.objects.filter(id=self.item.id).update(unit_price=total)
+
+            # Guardamos el costo unitario del conjunto
+            Items.objects.filter(id=self.item.id).update(
+                unit_price=total_unitario
+            )
+    
     def __str__(self):
-        return f"{self.item.group.quote} - {self.magnitude_price}"
+        if self.asset:
+            return f"{self.asset} - {self.magnitude_price}"
+        return f"SubItem {self.id} - {self.magnitude_price}"

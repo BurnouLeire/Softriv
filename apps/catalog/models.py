@@ -73,7 +73,7 @@ class MagnitudePrice (models.Model):
         db_table = 'catalog_magnitude_price'
 
     def __str__(self):
-        return self.magnitude.name
+        return f"{self.magnitude.name} - {self.tag}- {self.base_price}"
     
 class Procedures(models.Model):
     code = models.CharField(max_length=50, unique=True)
